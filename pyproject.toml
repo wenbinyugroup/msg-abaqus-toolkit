@@ -4,4 +4,8 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "sphinx>=4.0",
+    "myst-parser>=0.18.0",
+    "sphinx-immaterial",
+]
