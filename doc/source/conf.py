@@ -15,7 +15,6 @@ author = 'Bo Peng, Su Tian'
 
 extensions = [
     'myst_parser',
-    'sphinx_immaterial',
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
     "sphinx.ext.githubpages",
@@ -25,8 +24,8 @@ extensions = [
 
 # MyST-Parser configuration
 source_suffix = {
-    '.rst': None,
-    '.md': None,
+    '.rst': 'restructuredtext',
+    '.md': 'markdown',
 }
 
 myst_enable_extensions = [
@@ -53,5 +52,5 @@ exclude_patterns = []
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = 'sphinx_immaterial'
-html_static_path = ['_static', '../../../assets']
+html_theme = 'pydata_sphinx_theme'
+html_static_path = ['_static', '../../assets']
