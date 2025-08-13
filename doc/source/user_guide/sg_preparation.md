@@ -3,17 +3,29 @@
 
 SG creation tool buttons (3-8) can help the user to set up the configurations of SGs.
 
-Abaqus functions are highly integrated in building the SGs, such as materials, composite layup, section assignment, mesh etc. But some settings in the original Abaqus GUI are not used, and the meanings of some parameters are different, which needs special attentions from the user. The details will be explained in the following sections. For convenience, the term ‘**Abaqus GUI**’ is referred in this manual when using the functions of the original Abaqus, otherwise ‘**Abaqus-SwiftComp GUI**’ is explicitly specified. _Italic texts_ represents the terms shown in dialog box of Abaqus GUI, and texts in ‘ ’ represents terms shown in dialog box of Abaqus-SwiftComp GUI.
+![](/_static/images/toolbar-annotated.png)
+
+Abaqus functions are highly integrated in building the SGs, such as materials, composite layup, section assignment, mesh, etc.
+But some settings in the original Abaqus/CAE are not used, and the meanings of some parameters are different, which needs special attentions from the user.
+The details will be explained in the following sections.
+For convenience, the term **Abaqus GUI** is referred in this manual when using the functions of the original Abaqus, otherwise **Abaqus-SwiftComp GUI** is explicitly specified.
+*Italic texts* represents the terms shown in dialog box of Abaqus GUI, and texts in ' ' represents terms shown in dialog box of Abaqus-SwiftComp GUI.
 
 ## Geometry
 
-Users can create common SGs using the 1D SG button (3), 2D SG button (4), or 3D SG button (8), which provides common microstructures of composites for 1D, 2D and 3D SGs respectively. Or they can build customized 2D SGs using button 5, 6, 7 or Abaqus functions.
+Users can create common SGs using the 1D SG button (3), 2D SG button (4), or 3D SG button (8), which provides common microstructures of composites for 1D, 2D and 3D SGs respectively.
+Or they can build customized 2D SGs using button 5, 6, 7 or Abaqus functions.
 
-According to the convention of SwiftComp<sup>TM</sup>, for 1D SGs, the geometry should be aligned with Z direction in the global coordinate system; for 2D SGs, the geometry should be in the Y-Z plane in the global coordinate system. The work plane button help the user set up the work plane for customized 1D SGs and 2D SGs.
+According to the convention of SwiftComp, for 1D SGs, the geometry should be aligned with Z direction in the global coordinate system; for 2D SGs, the geometry should be in the Y-Z plane in the global coordinate system.
+The work plane button help the user set up the work plane for customized 1D SGs and 2D SGs.
 
-For 1D customized SG, the work plane button also creates a temporary line geometry in Z direction, and a set named ‘Set_Layup’. Then the user can use _Create Composite Layup_ tool button of Abaqus GUI to create composite layup, in which _Region_ is assigned using the set ‘Set_Layup’. The next step to create a 1D customized SG is to choose the ‘Composite Layup’ method in dialog box of the 1D SG button. After this step, the temporary line geometry will be deleted, and the actual 1D SG composed of consecutive line segments is created, of which each line segment represents a ply.
+For 1D customized SG, the work plane button also creates a temporary line geometry in Z direction, and a set named 'Set_Layup'.
+Then the user can use *Create Composite Layup* tool button of Abaqus GUI to create composite layup, in which *Region* is assigned using the set 'Set_Layup'.
+The next step to create a 1D customized SG is to choose the 'Composite Layup' method in dialog box of the 1D SG button.
+After this step, the temporary line geometry will be deleted, and the actual 1D SG composed of consecutive line segments is created, of which each line segment represents a ply.
 
-To create the geometry for a 2D customized SG, the next step is to use _Create Shell: Planar_ button. Other procedures are the same as creating a 3D shell part in Abaqus GUI.
+To create the geometry for a 2D customized SG, the next step is to use *Create Shell: Planar* button.
+Other procedures are the same as creating a 3D shell part in Abaqus GUI.
 
 The procedure to create 3D customized SG geometry is the same as that to create a 3D part in Abaqus GUI.
 

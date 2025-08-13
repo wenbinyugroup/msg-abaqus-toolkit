@@ -22,3 +22,7 @@ doc/build/
 Thumbs.db
 ehthumbs.db
 
+
+# MS office temp files
+~$*
+

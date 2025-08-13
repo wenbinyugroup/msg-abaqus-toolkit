@@ -1,7 +1,22 @@
 # MSG-Abaqus Toolkit
 
-A toolkit for MSG in Abaqus.
+A toolkit for VABS/MSG in Abaqus.
 
+## Overview
+
+
+## Quick Start
+
+### Prerequisites
+
+- Abaqus
+- VABS/SwiftComp
+
+### Installation
+
+- Download the package
+- Unzip the package
+- Run the shortcut `Abaqus-SwiftComp GUI`
 
 
 ## Contributing
