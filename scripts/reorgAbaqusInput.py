@@ -41,7 +41,10 @@ def reorgAbaqusInput(
             mtr_type = 'ISOTROPIC'
         mtr_type = material_type[mtr_type]
         mtr[mtr_id] = {'isotropy': mtr_type, 'ntemp': 1, 'elastic': []}
-        rho = densities[i].data[0][0]
+        try:
+            rho = densities[i].data[0][0]
+        except IndexError:
+            rho = 1.0
         # print elastics[i].data
         # els = np.array(elastics[i].data).ravel()
         els = []

@@ -92,7 +92,7 @@ def eraseLayups(baseline, model_name):
     except:
             pass
     
-    uab_refreshSets(mdb, model_name, part_name, set_fpt)
+    uab.refreshSets(mdb, model_name, part_name, set_fpt)
     
     cst_part['Set name'] = set_name
     cst_part['Set-FacePoint'] = set_fpt

@@ -10,6 +10,7 @@
 *.log
 *.rec
 *.jnl
+*.guiState*
 
 # SwiftComp file
 *.sc
@@ -17,6 +18,7 @@
 # Others
 .venv/
 doc/build/
+tests/
 
 # Windows image file caches
 Thumbs.db
