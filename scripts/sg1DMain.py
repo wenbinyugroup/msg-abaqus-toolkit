@@ -21,35 +21,11 @@ def create1DSG(method,
                rf_model_name = '', rf_part_name='', rf_section_name='', rf_offset_ratio=0.0,
                file_layup_input='', model_name_file='',
                element_type='five-noded'):
-    
-#    print """method %s ,
-#               layup_fg=%s , thickness_fg=%s , model_name_fg=%s , material_name=%s , offset_ratio_fg= %f ,
-#               model_name_abq=%s, part_name=%s, layup_abq=%s,
-#               rf_model_name = %s, rf_part_name=%s, rf_section_name = %s, rf_offset_ratio= %f,
-#               file_layup_input=%s,model_name_file=%s,
-#               element_type=%s""" \
-#               % (method,
-#                layup_fg, thickness_fg, model_name_fg,material_name, offset_ratio_fg,
-#                model_name_abq, part_name, layup_abq,
-#                rf_model_name, rf_part_name, rf_section_name, rf_offset_ratio,
-#                file_layup_input, model_name_file,
-#                element_type)
-#    print """method %s' ,
-#               'layup_fg=%s , thickness_fg=%s , model_name_fg=%s , material_name=%s , offset_ratio_fg= %f """\
-#               % (method, layup_fg, thickness_fg, 
-#               model_name_fg, material_name, offset_ratio_fg)
+
     if method == 1:
-#        print 'fastGenerate method'
-        
-        #fastGenerate(layup_fg, thickness_fg, model_name_fg, material_name, offset_ratio_fg, element_type)
-#        print """method %s' ,
-#           'layup_fg=%s , thickness_fg=%s , model_name_fg=%s , material_name=%s , offset_ratio_fg= %f, element_type=%s """\
-#           % (method, layup_fg, thickness_fg, 
-#           model_name_fg, material_name, offset_ratio_fg, element_type)
-           
         fastGenerate1D(layup_fg, thickness_fg, model_name_fg, material_name, 
                        offset_ratio_fg, element_type)
-        
+
     elif method == 2:
         #print 'other methods need to be added'
         abaLayupGenerate(model_name_abq, part_name, layup_abq, element_type)
@@ -57,10 +33,10 @@ def create1DSG(method,
     elif method == 3:
 #        print 'abaSection1D method'
         abaSection1D(rf_model_name, rf_part_name, rf_section_name, rf_offset_ratio, element_type)
- 
+
     elif method == 4:
         fromInputfile1D(file_layup_input, model_name_file,  element_type)    
-    
+
     return 1
 
 
@@ -317,8 +293,10 @@ def abaLayupGenerate(model_name_abq, part_name,layup_abq, element_type):
     e = p.edges
     p.seedEdgeByNumber(edges=e, number=abaEle_edge, constraint=FINER)
     p.generateMesh()
-    setYZview()
-    
+
+    # setYZview()
+    uab.setViewYZ(nsg=1, obj=p)
+
     return 1
 
 
@@ -441,7 +419,9 @@ def abaSection1D(model_name = '', part_name = '', section_name = '', offset_rati
                                     additionalRotationType=ROTATION_NONE, additionalRotationField='',
                                     axis=AXIS_3, angle=0.0, numIntPoints=3)
         
-    setYZview()
+    # setYZview()
+    uab.setViewYZ(nsg=1, obj=p)
+
     return 1
 
 
@@ -454,7 +434,7 @@ def abaSection1D(model_name = '', part_name = '', section_name = '', offset_rati
 
 def fromInputfile1D(file_layup_input, model_name, element_type):
 
-    model = mdb.models[model_name_file]
+    model = mdb.models[model_name]
     mat_abq = model.materials.keys()
     set_name = 'Set_layup'
     cv = session.viewports['Viewport: 1']
@@ -609,6 +589,7 @@ def fromInputfile1D(file_layup_input, model_name, element_type):
                                     additionalRotationType=ROTATION_NONE, additionalRotationField='',
                                     axis=AXIS_3, angle=0.0, numIntPoints=3)
         
-    setYZview()
-    
+    # setYZview()
+    uab.setViewYZ(nsg=1, obj=p)
+
     return 1
