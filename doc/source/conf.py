@@ -7,7 +7,7 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'Abaqus-SwiftComp GUI'
-copyright = '2025, Bo Peng, Su Tian'
+copyright = '2017-%Y, Bo Peng, Su Tian'
 author = 'Bo Peng, Su Tian'
 
 # -- General configuration ---------------------------------------------------
@@ -48,9 +48,18 @@ templates_path = ['_templates']
 exclude_patterns = []
 
 
+numfig = True
+numfig_format = {
+    'figure': 'Figure %s',
+    'table': 'Table %s',
+    'code-block': 'Listing %s',
+    'section': 'Section'}
+numfig_secnum_depth = 2
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = 'pydata_sphinx_theme'
+html_title = 'Abaqus-SwiftComp GUI'
 html_static_path = ['_static', '../../assets']
+

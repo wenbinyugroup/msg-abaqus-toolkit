@@ -9,7 +9,7 @@ Abaqus functions are highly integrated in building the SGs, such as materials, c
 But some settings in the original Abaqus/CAE are not used, and the meanings of some parameters are different, which needs special attentions from the user.
 The details will be explained in the following sections.
 For convenience, the term **Abaqus GUI** is referred in this manual when using the functions of the original Abaqus, otherwise **Abaqus-SwiftComp GUI** is explicitly specified.
-*Italic texts* represents the terms shown in dialog box of Abaqus GUI, and texts in ' ' represents terms shown in dialog box of Abaqus-SwiftComp GUI.
+*Italic texts* represents the terms shown in dialog box of Abaqus GUI, and texts in "" represents terms shown in dialog box of Abaqus-SwiftComp GUI.
 
 ## Geometry
 
@@ -33,7 +33,7 @@ The procedure to create 3D customized SG geometry is the same as that to create 
 
 In the Material module, the _elastic_ materials properties can be defined by types: _Isotropic, Engineering Constants, Orthotropic_ and _Anisotropic_. If effective density of SG is required, _density_ of the material should be specified; if thermoelastic analysis is conducted, _Expansion_ and _Specific Heat_ should be specified. If density, expansion and specific heat are required in the analysis but not specified, Abaqus-SwiftComp GUI will not ask for it, but use the default values, information will be shown in the message area. All the material properties can only be defined in the most basic way, advanced options such as _temperature-dependent data_, _discrete fields_ cannot be used in the current version. Just like in Abaqus GUI, materials not used in SGs are allowed to exist.
 
-Materials can also be imported from a file, whose format is XML. For more details, please go to section 3.3.2.
+Materials can also be imported from a file, whose format is XML. For more details, see [this section](#guide-add-layup).
 
 ## Sections
 
@@ -47,7 +47,7 @@ Material section assignment is defined in the same way as in Abaqus GUI. Section
 
 _Composite Layup of Conventional Shell_ of Abaqus GUI is used in creating composite layup for 1D SGs and 2D SGs. Plies are allowed to be depressed or be edited using the tools in the dialog box. However the current version of Abaqus-SwiftComp GUI sometimes will crash when the user revises an existing composite layup or changes the part name of a 1D SG part, so it is highly recommended to save your work before the revision.
 
-For 1D SG, information of the _Index of the plies (_not the _Ply Name), Material, Thickness, Rotation Angle_ and _Offset_ setting of this dialog box will be read into the input file (\*.sc) of SwiftComp<sup>TM</sup> when doing homogenization. _Region_ should be the set ‘Set_Layup’ which contains the whole 1D SG geometry. The same as that in Abaqus, the laminate is stacked from index ‘1’ to the maximum ply index. Things need to know also include:
+For 1D SG, information of the _Index of the plies (_not the _Ply Name), Material, Thickness, Rotation Angle_ and _Offset_ setting of this dialog box will be read into the input file (\*.sc) of SwiftComp when doing homogenization. _Region_ should be the set ‘Set_Layup’ which contains the whole 1D SG geometry. The same as that in Abaqus, the laminate is stacked from index ‘1’ to the maximum ply index. Things need to know also include:
 
 1) The _layup orientation_ can only be defined based on the _Part global_ coordinate system.
 
@@ -71,8 +71,11 @@ The third part (in the green frame) provide the corresponding relationship betwe
 
 In details, in the first part, the first integer ‘4’ is the number of layers written in the second part, which is not necessarily the actual total number of the laminate). The second integer ‘2’ is the number of material types written in the third part. The character ‘s’ in the third place means ‘symmetric’, therefore the current layup angle is \[45/30/60/-45\]s. This character can also be ‘a’ which means ‘antisymmetric’, if in the current example it is changed to ‘a’, the layup angle will be \[45/30/60/-45/60/30/45\]. The last float ‘0.005’ is the offset ratio, which is explained in Section 2.1.1.
 
+```{figure} /_static/images/example-layup-file.png
+:align: center
 
-Fig. 1.2.1 layup file format example
+Layup file format example
+```
 
 Other notes:
 
@@ -89,8 +92,18 @@ User can use Abaqus’s own function to assign local element orientation. For 2D
 
 ## Mesh
 
-Mesh must be generated on _Part_ instead of on _Instance_. For 2D customized SGs, element types assigned in Abaqus GUI can be triangular (_TRI_) and quadrangular (_QUAD_), linear or quadratic such as S3, STRI3, S4, S4R, S8R, S8R5, etc. For 3D customize SGs, element types assigned in Abaqus GUI can be hexagonal (_Hex_) and tetrahedral (_Tet_), linear or quadratic such as C3D4, C3D10M, C3D8R, C3D8, C3D20R, C3D20 etc. However, only the nodal coordinates and element connectivities are read into SwiftComp<sup>TM</sup> for analysis, therefore the results are the same whether C3D4 or C3D4R is used.
+Mesh must be generated on _Part_ instead of on _Instance_.
+For 2D customized SGs, element types assigned in Abaqus GUI can be triangular (_TRI_) and quadrangular (_QUAD_), linear or quadratic such as S3, STRI3, S4, S4R, S8R, S8R5, etc.
+For 3D customize SGs, element types assigned in Abaqus GUI can be hexagonal (_Hex_) and tetrahedral (_Tet_), linear or quadratic such as C3D4, C3D10M, C3D8R, C3D8, C3D20R, C3D20 etc.
+However, only the nodal coordinates and element connectivities are read into SwiftComp for analysis, therefore the results are the same whether C3D4 or C3D4R is used.
 
-For 1D SGs, mesh will be done automatically by using the 1D SG button. The element type assigned in GUI is B31, but just as shown in the dialog box of the 1D SG button, the actual element type used in the SG can be two-noded, three-noded, four-noded or five-noded. Each edge in the geometry of 1D SG represents 1 ply and has only 1 element in SwiftComp<sup>TM</sup>. Two-noded elements will be accurate for 3D solid, but five-noded elements are recommended for 2D Plate/Shell.
+For 1D SGs, mesh will be done automatically by using the 1D SG button.
+The element type assigned in GUI is B31, but just as shown in the dialog box of the 1D SG button, the actual element type used in the SG can be two-noded, three-noded, four-noded or five-noded.
+Each edge in the geometry of 1D SG represents 1 ply and has only 1 element in SwiftComp.
+Two-noded elements will be accurate for 3D solid, but five-noded elements are recommended for 2D Plate/Shell.
 
-Special attention needs to be paid on generating periodic mesh. For periodic materials or heterogeneous materials with local periodicity, SwiftComp<sup>TM</sup> requires a mesh with periodic nodes on the edges to rigorously satisfy the periodicity requirement. Theoretically speaking, a node on the boundary surface must have a corresponding node on the parallel boundary surface with the same coordinates except the coordinate component normal to the boundary surface. However, currently this can only be guaranteed by the user. However, for complex microstructures, if it is difficult to create corresponding nodes on the periodic edges, SwiftComp<sup>TM</sup> provides a way to automatically provide the best approximate solution.
+Special attention needs to be paid on generating periodic mesh.
+For periodic materials or heterogeneous materials with local periodicity, SwiftComp requires a mesh with periodic nodes on the edges to rigorously satisfy the periodicity requirement.
+Theoretically speaking, a node on the boundary surface must have a corresponding node on the parallel boundary surface with the same coordinates except the coordinate component normal to the boundary surface.
+However, currently this can only be guaranteed by the user.
+However, for complex microstructures, if it is difficult to create corresponding nodes on the periodic edges, SwiftComp provides a way to automatically provide the best approximate solution.

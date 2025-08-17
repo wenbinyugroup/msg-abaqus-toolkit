@@ -6,6 +6,7 @@
 :caption: Contents:
 
 sg_preparation
+add_layup
 msg_analysis
 visualization
 limitations
