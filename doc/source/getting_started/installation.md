@@ -18,18 +18,23 @@ In the unzipped folder, double click the short cut `Abaqus-SwiftComp GUI` to lau
 
 ### 2. Command line
 
-Open a command line window, navigate to the unzipped folder, and run the command `abaqus cae -custom SwiftCompGUI.py`.
+Open a command line window, navigate to the unzipped folder, and run the command `abaqus cae -custom SwiftCompGUI`.
 
 
 ### 3. Full integration
 
 In this way, user can start the GUI and work on analysis anywhere.
 Several steps are needed:
-1. Add the folder's root path (containing the file `SwiftCompGUI.py`) to the `PYTHONPATH` of Abaqus.
-This constant is in the file `abaqus.aev`, which is usually located at `abaqus_home_directory\SMA\site`.
-Insert the full path just before `.:$PYTHONPATH` at the end.
-Pay attention to the direction of the slash. Save;
+1. Let Abaqus locate the package.
+    - For Abaqus 2020 and later:
+        - Add the path containing `SwiftCompGUI.py` to the variable `plugin_central_dir` in `abaqus_v6.env`.
+        - Abaqus 2024 and later uses Python 3.
+        - Abaqus 2023 and earlier uses Python 2.
+    - For Abaqus 2019 and earlier:
+        - Add the path containing `SwiftCompGUI.py` (Python 2) to the `PYTHONPATH` in `abaqus.aev` of Abaqus. This file is usually located at `:<your_abaqus_home_directory>\SMA\site`. Insert the full path just before `:$PYTHONPATH` at the end. Pay attention to the direction of the slash.
+
 2. Add a custom command to Abaqus.
-Open file `abaqus.app` in a text editor, which is usually located at `abaqus_home_directory\SMA\site`.
-Append `swiftcomp cae –custom SwiftCompGUI` at the end of the command list. Save;
+Open file `abaqus.app` in a text editor, which is usually located at `<your_abaqus_home_directory>\SMA\site`.
+Append `swiftcomp cae –custom SwiftCompGUI` at the end of the command list.
+
 3. To start the GUI, type `abaqus swiftcomp` in the command prompt.
