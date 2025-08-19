@@ -5,8 +5,9 @@
 # This script creates and launches the Beam GUI application 
 # ******************************************************************************
 
-from abaqusGui import AFXApp
 import sys
+from abaqusGui import AFXApp
+
 from vabsCaeMainWindow import VABSCaeMainWindow
 
 # Initialize application object 
@@ -15,9 +16,9 @@ from vabsCaeMainWindow import VABSCaeMainWindow
 app = AFXApp(appName = 'ABAQUS/CAE', 
              vendorName = 'SIMULIA', 
              productName = 'Abaqus-VABS GUI', 
-             majorNumber = 6, 
-             minorNumber = 16, 
-             updateNumber = 0, 
+             majorNumber = -1, 
+             minorNumber = -1, 
+             updateNumber = -1, 
              prerelease = False)
 
 app.init(sys.argv)

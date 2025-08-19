@@ -54,7 +54,7 @@ numfig_format = {
     'table': 'Table %s',
     'code-block': 'Listing %s',
     'section': 'Section'}
-numfig_secnum_depth = 2
+numfig_secnum_depth = 3
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
