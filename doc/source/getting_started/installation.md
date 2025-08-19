@@ -1,3 +1,4 @@
+(start-install)=
 # Installation
 
 To get started to use Abaqus-SwiftComp GUI on your local machine, you just need to simply unzip the distribution package into a folder of your own choice.
@@ -27,7 +28,10 @@ In this way, user can start the GUI and work on analysis anywhere.
 Several steps are needed:
 1. Let Abaqus locate the package.
     - For Abaqus 2020 and later:
-        - Add the path containing `SwiftCompGUI.py` to the variable `plugin_central_dir` in `abaqus_v6.env`.
+        - Add the path containing `SwiftCompGUI.py` to the variable `plugin_central_dir` in `abaqus_v6.env`, e.g.,
+          ```python
+          plugin_central_dir = "<your_unzipped_folder>;<other_directories>"
+          ```
         - Abaqus 2024 and later uses Python 3.
         - Abaqus 2023 and earlier uses Python 2.
     - For Abaqus 2019 and earlier:
@@ -35,6 +39,10 @@ Several steps are needed:
 
 2. Add a custom command to Abaqus.
 Open file `abaqus.app` in a text editor, which is usually located at `<your_abaqus_home_directory>\SMA\site`.
-Append `swiftcomp cae –custom SwiftCompGUI` at the end of the command list.
+   Append
+   ```
+   swiftcomp cae –custom SwiftCompGUI
+   ```
+   at the end of the command list.
 
 3. To start the GUI, type `abaqus swiftcomp` in the command prompt.

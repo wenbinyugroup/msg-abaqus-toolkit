@@ -5,10 +5,10 @@ Although common SG function provides users a convenient way to build the geometr
 
 
 ```{toctree}
-:hidden:
 :maxdepth: 1
 
-sg_2d_cross-section.md
-sg_2d_airfoil.md
 sg_2d_arbitrary.md
+sg_2d_cross-section.md
 ```
+
+<!-- sg_2d_airfoil.md -->
