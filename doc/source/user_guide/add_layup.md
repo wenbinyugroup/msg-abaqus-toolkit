@@ -12,7 +12,12 @@ Then provide a new composite section name and the layup rule.
 The thickness at the last is for each ply.
 This method is only suitable for layups with a single material having different fiber orientations and all plies with the same thickness, which is the most common case in industry
 
-![](/_static/images/create-layups-db-fast.png)
+```{figure} /_static/images/create-layups-db-fast.png
+:align: center
+
+Fast generation of layup.
+```
+
 
 ## Read from file
 
@@ -22,7 +27,11 @@ Both the material file and layup file should use the XML format and details are 
 Users are encouraged to have some basic knowledge on XML files.
 A quick and simple tutorial can be found at <http://www.tutorialspoint.com/xml/index.htm>.
 
-![](/_static/images/create-layups-db-file.png)
+```{figure} /_static/images/create-layups-db-file.png
+:align: center
+
+Read from file.
+```
 
 
 ### Material file

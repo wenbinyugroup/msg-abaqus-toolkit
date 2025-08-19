@@ -7,7 +7,7 @@ To get started to use Abaqus-SwiftComp GUI on your local machine, you just need 
 
 The key to running the GUI is the following command:
 ```bash
-abaqus cae -custom SwiftCompGUI.py
+abaqus cae -custom SwiftCompGUI
 ```
 
 There are three ways to trigger this command:
@@ -46,3 +46,18 @@ Open file `abaqus.app` in a text editor, which is usually located at `<your_abaq
    at the end of the command list.
 
 3. To start the GUI, type `abaqus swiftcomp` in the command prompt.
+
+
+
+Once the GUI is launched, you should see the SwiftComp toolbar in the main window.
+
+```{figure} /_static/images/toolbar.png
+:align: center
+
+SwiftComp toolbar.
+```
+
+
+```{note}
+If the toolbar does not show up, please go to the menu **View** -> **Toolbars** -> **SwiftComp** to activate it.
+```

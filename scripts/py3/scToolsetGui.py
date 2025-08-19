@@ -40,7 +40,7 @@ class SCToolsetGui(AFXToolsetGui):
         AFXToolsetGui.__init__(self, 'SwiftComp')
 
         # Toolbox buttons
-        toolbar_group_1 = AFXToolbarGroup(self, title='SwiftComp Toolset')
+        toolbar_group_1 = AFXToolbarGroup(self, title='SwiftComp')
 
         ic = afxCreateIcon(os.path.join(thisDir, 'sc_wp_small.png'))
         AFXToolButton(p     = toolbar_group_1, 

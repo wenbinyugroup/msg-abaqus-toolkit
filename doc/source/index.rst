@@ -18,18 +18,11 @@ This manual focuses on explaining how to use Abaqus-SwiftComp GUI.
 
 
 ..  toctree::
-    :maxdepth: 2
     :caption: Contents:
+    :maxdepth: 2
+    :numbered: 3
 
     getting_started/index
     user_guide/index
     tutorials/index
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
 

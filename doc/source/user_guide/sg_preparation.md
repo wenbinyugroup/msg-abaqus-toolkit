@@ -4,12 +4,23 @@
 
 SG creation tool buttons (3-8) can help the user to set up the configurations of SGs.
 
-![](/_static/images/toolbar-annotated.png)
+
+```{figure} /_static/images/toolbar-annotated.png
+:align: center
+
+SwiftComp toolbar.
+```
 
 Abaqus functions are highly integrated in building the SGs, such as materials, composite layup, section assignment, mesh, etc.
 But some settings in the original Abaqus/CAE are not used, and the meanings of some parameters are different, which needs special attentions from the user.
 The details will be explained in the following sections.
 <!-- For convenience, the term **Abaqus GUI** is referred in this manual when using the functions of the original Abaqus, otherwise **Abaqus-SwiftComp GUI** is explicitly specified. -->
+
+
+```{contents} Table of contents
+:depth: 3
+```
+
 
 (guide-sg-prepare-geometry)=
 ## Geometry
@@ -32,7 +43,9 @@ Other procedures are the same as creating a 3D shell part in Abaqus/CAE.
 The procedure to create a 3D customized SG geometry is the same as that to create a 3D part in Abaqus GUI.
 
 (guide-sg-prepare-material)=
-## Material
+## Material, Section, and Orientation
+
+### Material
 
 In the Material module, the _elastic_ materials properties can be defined by types: _Isotropic, Engineering Constants, Orthotropic_ and _Anisotropic_.
 If effective density of SG is required, _density_ of the material should be specified; if thermoelastic analysis is conducted, _Expansion_ and _Specific Heat_ should be specified.
@@ -42,8 +55,8 @@ Advanced options such as _temperature-dependent data_, _discrete fields_ cannot 
 
 Materials can also be imported from a file, whose format is XML. For more details, see [this section](#guide-add-layup).
 
-(guide-sg-prepare-section)=
-## Sections
+
+### Sections
 
 In Abaqus-SwiftComp GUI, section types _Solid-Homogeneous_, _Shell-Homogeneous, Solid-Composite, Shell-Composite_ are applied.
 Sections are defined in the same way as in Abaqus GUI.
@@ -51,14 +64,10 @@ Material sections not assigned to SGs are allowed to exist.
 Note: For 2D SGs, the geometry should be in the Y-Z plane in the global coordinate system.
 Abaqus only allow shell feature in 3D space to be placed in the Y-Z plane, thus practically, user can only use _Shell-Homogeneous_ sections.
 
-(guide-sg-prepare-section-assignment)=
-## Section Assignment
-
-Material section assignment is defined in the same way as in Abaqus GUI.
+Section assignment is defined in the same way as in Abaqus GUI.
 Section assignments are allowed to be depressed, and the depressed sections assignment will be ignored.
 
-(guide-sg-prepare-composite-layup)=
-## Composite Layup
+#### Composite Layup
 
 _Composite Layup of Conventional Shell_ of Abaqus GUI is used in creating composite layup for 1D SGs and 2D SGs.
 Plies are allowed to be depressed or be edited using the tools in the dialog box.
@@ -73,12 +82,12 @@ Things need to know also include:
 3. If Plate/Shell analysis is conducted, the first 4 option of _Offset_ tab book can be used to shift the coordinate in the input file of SwiftComp, which have the same definition as that of Abaqus. The shift will not show on the geometry of the SG. This will be further explained in Section 2.1.1 and Section 3.1.1.
 4. Only one Composite layup is allowed to exist in a 1D SG part.
 
-(guide-sg-prepare-layup-file-format)=
-## Layup file format
+
+#### Layup file format
 
 Composite Layup information can also be imported into Abaqus-SwiftComp GUI by choosing layup file (\*.dat) with specific format.
 Currently this format is only valid for 1D SG.
-An example of the format is shown in Fig.1.2.1.
+An example of the format is shown in {numref}`fig-example-layup-file`.
 
 The file is composed of 3 parts.
 
@@ -91,6 +100,7 @@ The third part (in the green frame) provide the corresponding relationship betwe
 In details, in the first part, the first integer ‘4’ is the number of layers written in the second part, which is not necessarily the actual total number of the laminate). The second integer ‘2’ is the number of material types written in the third part. The character ‘s’ in the third place means ‘symmetric’, therefore the current layup angle is \[45/30/60/-45\]s. This character can also be ‘a’ which means ‘antisymmetric’, if in the current example it is changed to ‘a’, the layup angle will be \[45/30/60/-45/60/30/45\]. The last float ‘0.005’ is the offset ratio, which is explained in Section 2.1.1.
 
 ```{figure} /_static/images/example-layup-file.png
+:name: fig-example-layup-file
 :align: center
 
 Layup file format example
@@ -103,8 +113,8 @@ Other notes:
 
 A layup can also be imported from a XML file. The ‘New layups’ function will read the material file and layup file and create one or more _Solid-Composite_ sections. For more details, please go to section 3.3.2.
 
-(guide-sg-prepare-local-orientation)=
-## Local orientation
+
+### Local orientation
 
 User can use Abaqus’s own function to assign local element orientation.
 For 2D cross-section (shell feature in 3D space), there are several things user need to pay attention to.

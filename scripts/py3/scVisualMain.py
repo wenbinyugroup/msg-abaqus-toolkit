@@ -333,11 +333,11 @@ def visualization(macro_model, ap_flag, sc_input):
             elem_sectn = elem_sectn_new
             new_strain = []
             new_stress = []
-                
-            nedge = len(elem_label) / nelem_edge
+
+            nedge = int(len(elem_label) / nelem_edge)
             print('number of beam elements in the 1D SG model: ')
             print(nedge)
-                
+
             if nelem_edge == 4:
                 nodes_edge = [0,2,2,4,4,3,3,1]
             elif nelem_edge == 3:
@@ -367,7 +367,12 @@ def visualization(macro_model, ap_flag, sc_input):
               analysisTitle = odb_title, 
               description = 'SwiftComp Dehomogenization', 
               path = odb_file_name)
-    
+
+    # print('\nelem_label:')
+    # print(elem_label)
+    # print('\nsn_strain:')
+    # print(sn_strain)
+
     if nsg == 2:
         visualization2D(odb, project_name, node_coord, elem_connt_s3, elem_connt_s6, 
                         elem_connt_s4, elem_connt_s8, elem_connt_s9, elem_sectn, node_label, elem_label, 
@@ -454,7 +459,7 @@ def visualization1D(odb_vis, project_name, node_coord, elem_connt_b31,
                        noTension = OFF, 
                        moduli = LONG_TERM, 
                        table = ((12000, 0.3), ))
-    
+
     # -------------------------
     # Create different sections
     section_name_g = 'nLayer'
@@ -464,10 +469,10 @@ def visualization1D(odb_vis, project_name, node_coord, elem_connt_b31,
         abq_section[k] = odb_vis.HomogeneousSolidSection(
             name = section_name, material = material_name
             )
-    
+
     # -----------------
     # Create a new part
-    
+
     part_1 = odb_vis.Part(name = 'Part-1', embeddedSpace = THREE_D, type = DEFORMABLE_BODY)
     node_coord = tuple(node_coord)
     # Import nodes
@@ -601,171 +606,224 @@ def visualization1D(odb_vis, project_name, node_coord, elem_connt_b31,
 #
 # ==============================================================================
 
-def visualization2D(odb_vis, project_name, node_coord, elem_connt_s3, elem_connt_s6, 
-                    elem_connt_s4, elem_connt_s8, elem_connt_s9, elem_sectn, node_label, elem_label, 
-                    u_data, sg_strain, sg_stress, sn_strain, sn_stress, 
-                    sgm_strain, sgm_stress, snm_strain, snm_stress):
+def visualization2D(
+    odb_vis, project_name, node_coord, elem_connt_s3, elem_connt_s6, 
+    elem_connt_s4, elem_connt_s8, elem_connt_s9, elem_sectn, node_label, elem_label, 
+    u_data, sg_strain, sg_stress, sn_strain, sn_stress, 
+    sgm_strain, sgm_stress, snm_strain, snm_stress
+    ):
 
     # -----------------------
     # Create a dummy material
     
     material_name = 'Elastic material'
-    material_1 = odb_vis.Material(name = material_name)
-    material_1.Elastic(type = ISOTROPIC, 
-                       temperatureDependency = OFF, 
-                       dependencies = 0, 
-                       noCompression = OFF, 
-                       noTension = OFF, 
-                       moduli = LONG_TERM, 
-                       table = ((12000, 0.3), ))
+    material_1 = odb_vis.Material(name=material_name)
+    material_1.Elastic(type=ISOTROPIC, 
+                       temperatureDependency=OFF, 
+                       dependencies=0, 
+                       noCompression=OFF, 
+                       noTension=OFF, 
+                       moduli=LONG_TERM, 
+                       table=((12000, 0.3), ))
                        
     # -------------------------
     # Create different sections
-    section_name_g = 'Homogeneous shell section'
+    # section_name_g = 'Homogeneous shell section'
+    section_name_g = 'Homogeneous solid section'
     abq_section = {}
     for k in list(elem_sectn.keys()):
         section_name = section_name_g + '-' + k
-        abq_section[k] = odb_vis.HomogeneousShellSection(
-            name = section_name, material = material_name, thickness = 0.1
+        # abq_section[k] = odb_vis.HomogeneousShellSection(
+        #     name = section_name, material = material_name, thickness = 0.1
+        #     )
+        abq_section[k] = odb_vis.HomogeneousSolidSection(
+            name=section_name, material=material_name
             )
-    s_cat = odb_vis.SectionCategory(name = 'S5', description = '')
-    sp_bot = s_cat.SectionPoint(number = 1, description = 'Bottom')
-    
+    s_cat = odb_vis.SectionCategory(name='S5', description='')
+    # sp_bot = s_cat.SectionPoint(number=1, description='Bottom')
+
     # -----------------
     # Create a new part
-    
-    part_1 = odb_vis.Part(name = 'Part-1', embeddedSpace = THREE_D, type = DEFORMABLE_BODY)
+
+    part_1 = odb_vis.Part(
+        name='Part-1',
+        embeddedSpace=THREE_D,
+        # embeddedSpace=TWO_D_PLANAR,
+        type=DEFORMABLE_BODY
+        )
     node_coord = tuple(node_coord)
     # Import nodes
-    part_1.addNodes(nodeData = node_coord, nodeSetName = 'nSet-1')
+    part_1.addNodes(nodeData=node_coord, nodeSetName='nSet-1')
     odb_vis.save()
-    
+
 #    elem_connt = tuple(elem_connt)
     # Import elements
     if elem_connt_s3 != []:
         elem_connt_s3 = tuple(elem_connt_s3)
-        part_1.addElements(elementData = elem_connt_s3, type = 'S3', elementSetName = 'eSet-s3', sectionCategory = s_cat)
+        part_1.addElements(
+            elementData=elem_connt_s3,
+            # type='STRI3',
+            type='WARPF2D3',
+            elementSetName='eSet-s3',
+            sectionCategory=s_cat
+            )
     if elem_connt_s6 != []:
         elem_connt_s6 = tuple(elem_connt_s6)
-        part_1.addElements(elementData = elem_connt_s6, type = 'DS6', elementSetName = 'eSet-s6', sectionCategory = s_cat)
+        part_1.addElements(
+            elementData = elem_connt_s6,
+            # type='DS6',
+            type='WARPF2D6',
+            elementSetName='eSet-s6',
+            sectionCategory=s_cat
+            )
     if elem_connt_s4 != []:
         elem_connt_s4 = tuple(elem_connt_s4)
-        part_1.addElements(elementData = elem_connt_s4, type = 'S4', elementSetName = 'eSet-s4', sectionCategory = s_cat)
+        part_1.addElements(
+            elementData=elem_connt_s4,
+            # type='S4',
+            type='WARPF2D4',
+            elementSetName='eSet-s4',
+            sectionCategory=s_cat
+            )
     if elem_connt_s8 != []:
         elem_connt_s8 = tuple(elem_connt_s8)
-        part_1.addElements(elementData = elem_connt_s8, type = 'DS8', elementSetName = 'eSet-s8', sectionCategory = s_cat)
+        part_1.addElements(
+            elementData=elem_connt_s8,
+            # type='DS8',
+            type='WARPF2D8',
+            elementSetName='eSet-s8',
+            sectionCategory=s_cat
+            )
     if elem_connt_s9 != []:
         elem_connt_s9 = tuple(elem_connt_s9)
-        part_1.addElements(elementData = elem_connt_s9, type = 'M3D9', elementSetName = 'eSet-s9', sectionCategory = s_cat)
+        part_1.addElements(
+            elementData=elem_connt_s9,
+            type='M3D9',
+            elementSetName='eSet-s9',
+            sectionCategory=s_cat
+            )
     odb_vis.save()
-    
+
     # ---------------------
     # Create a new instance
-    
-    instance_1 = odb_vis.rootAssembly.Instance(name = 'Part-1-1', object = part_1)
+
+    instance_1 = odb_vis.rootAssembly.Instance(name='Part-1-1', object=part_1)
     for k in list(elem_sectn.keys()):  # Assign sections to element sets
         section_name = section_name_g + ' - ' + k
         elem_sectn_label = tuple(elem_sectn[k])
         elem_set = odb_vis.rootAssembly.instances['Part-1-1'].\
-            ElementSetFromElementLabels(name = section_name, elementLabels = elem_sectn_label)
-        instance_1.assignSection(region = elem_set, section = abq_section[k])
+            ElementSetFromElementLabels(
+                name=section_name, elementLabels=elem_sectn_label)
+        instance_1.assignSection(region=elem_set, section=abq_section[k])
     odb_vis.save()
-    
+
     # ---------------------------
     # Create a new step and frame
-    
-    step_1 = odb_vis.Step(name = 'Step-1', description = '', domain = TIME, timePeriod = 1.0)
+
+    step_1 = odb_vis.Step(
+        name='Step-1', description='', domain=TIME, timePeriod=1.0)
     analysis_time = 0.1
-    frame_1 = step_1.Frame(incrementNumber = 1, frameValue = analysis_time, description = '')
+    frame_1 = step_1.Frame(
+        incrementNumber=1, frameValue=analysis_time, description='')
     
     # ------------------------
     # Import displacement data
     
     if u_data != []:
         u_data = tuple(u_data)
-        u_field = frame_1.FieldOutput(name = 'U', description = 'Displacements.', type = VECTOR,
-                                      validInvariants=(MAGNITUDE,),)
-        u_field.addData(position = NODAL, 
-                        instance = instance_1, 
-                        labels = node_label, 
-                        data = u_data)
+        u_field = frame_1.FieldOutput(
+            name='U',
+            description='Displacements.',
+            type=VECTOR,
+            validInvariants=(MAGNITUDE,)
+            )
+        u_field.addData(position=NODAL, 
+                        instance=instance_1, 
+                        labels=node_label, 
+                        data=u_data)
         step_1.setDefaultDeformedField(u_field)
         odb_vis.save()
-    
+
     # -----------------------------
     # Import strain and stress data
-    
+
     # ---- GLOBAL COORDINATES ----
-    # Strains at integration points
-    if sg_strain != []:
-        s_field = frame_1.FieldOutput(
-            name = 'EG', 
-            description = 'Strains at Gaussian points in the global coordinates.', 
-            type = TENSOR_3D_FULL, 
-            componentLabels = ('EG11', 'EG22', 'EG33', '2EG23', '2EG13', '2EG12'),
-            validInvariants=(MISES, TRESCA, PRESS, INV3, MAX_PRINCIPAL, MID_PRINCIPAL, MIN_PRINCIPAL),
-            )
-        s_field.addData(
-            position = INTEGRATION_POINT, 
-            sectionPoint = sp_bot, 
-            instance = instance_1, 
-            labels = elem_label, 
-            data = sg_strain
-            )
-        odb_vis.save()
-    
-    # Stresses at integration points
-    if sg_stress != []:
-        s_field = frame_1.FieldOutput(
-            name = 'SG', 
-            description = 'Stresses at Gaussian points in the global coordinates.', 
-            type = TENSOR_3D_FULL, 
-            componentLabels = ('SG11', 'SG22', 'SG33', 'SG23', 'SG13', 'SG12'),
-            validInvariants=(MISES, TRESCA, PRESS, INV3, MAX_PRINCIPAL, MID_PRINCIPAL, MIN_PRINCIPAL),
-            )
-        s_field.addData(
-            position = INTEGRATION_POINT, 
-            sectionPoint = sp_bot, 
-            instance = instance_1, 
-            labels = elem_label, 
-            data = sg_stress
-            )
-        odb_vis.save()
-    
+    # # Strains at integration points
+    # print(' --> Importing strains at integration points in the global coordinates...')
+    # if sg_strain != []:
+    #     s_field = frame_1.FieldOutput(
+    #         name='EG', 
+    #         description='Strains at Gaussian points in the global coordinates.', 
+    #         type=TENSOR_3D_FULL, 
+    #         componentLabels=('EG11', 'EG22', 'EG33', '2EG23', '2EG13', '2EG12'),
+    #         validInvariants=(MISES, TRESCA, PRESS, INV3, MAX_PRINCIPAL, MID_PRINCIPAL, MIN_PRINCIPAL),
+    #         )
+    #     s_field.addData(
+    #         position=INTEGRATION_POINT, 
+    #         # sectionPoint=sp_bot, 
+    #         instance=instance_1, 
+    #         labels=elem_label, 
+    #         data=sg_strain
+    #         )
+    #     odb_vis.save()
+
+    # # Stresses at integration points
+    # print(' --> Importing stresses at integration points in the global coordinates...')
+    # if sg_stress != []:
+    #     s_field = frame_1.FieldOutput(
+    #         name='SG', 
+    #         description='Stresses at Gaussian points in the global coordinates.', 
+    #         type=TENSOR_3D_FULL, 
+    #         componentLabels=('SG11', 'SG22', 'SG33', 'SG23', 'SG13', 'SG12'),
+    #         validInvariants=(MISES, TRESCA, PRESS, INV3, MAX_PRINCIPAL, MID_PRINCIPAL, MIN_PRINCIPAL),
+    #         )
+    #     s_field.addData(
+    #         position=INTEGRATION_POINT, 
+    #         # sectionPoint=sp_bot, 
+    #         instance=instance_1, 
+    #         labels=elem_label, 
+    #         data=sg_stress
+    #         )
+    #     odb_vis.save()
+
     # Strains at elemental nodes
+    print(' --> Importing strains at elemental nodes in the global coordinates...')
+    # print(elem_label)
+    # print(sn_strain)
     if sn_strain != []:
         e_field = frame_1.FieldOutput(
-            name = 'EN', 
-            description = 'Strains at nodes in the global coordinates.', 
-            type = TENSOR_3D_FULL, 
-            componentLabels = ('EN11', 'EN22', 'EN33', '2EN23', '2EN13', '2EN12'),
+            name='EN', 
+            description='Strains at nodes in the global coordinates.', 
+            type=TENSOR_3D_FULL, 
+            componentLabels=('EN11', 'EN22', 'EN33', '2EN23', '2EN13', '2EN12'),
             validInvariants=(MISES, TRESCA, PRESS, INV3, MAX_PRINCIPAL, MID_PRINCIPAL, MIN_PRINCIPAL),
             )
         e_field.addData(
-            position = ELEMENT_NODAL, 
-            sectionPoint = sp_bot, 
-            instance = instance_1, 
-            labels = elem_label, 
-            data = sn_strain
+            position=ELEMENT_NODAL, 
+            # sectionPoint=sp_bot, 
+            instance=instance_1, 
+            labels=elem_label, 
+            data=sn_strain
             )
 #        step_1.setDefaultField(e_field)
         odb_vis.save()
     
     # Stresses at elemental nodes
+    print(' --> Importing stresses at elemental nodes in the global coordinates...')
     if sn_stress != []:
         s_field = frame_1.FieldOutput(
-            name = 'SN', 
-            description = 'Stresses at nodes in the global coordinates.', 
-            type = TENSOR_3D_FULL, 
-            componentLabels = ('SN11', 'SN22', 'SN33', 'SN23', 'SN13', 'SN12'),
+            name='SN', 
+            description='Stresses at nodes in the global coordinates.', 
+            type=TENSOR_3D_FULL, 
+            componentLabels=('SN11', 'SN22', 'SN33', 'SN23', 'SN13', 'SN12'),
             validInvariants=(MISES, TRESCA, PRESS, INV3, MAX_PRINCIPAL, MID_PRINCIPAL, MIN_PRINCIPAL),
             )
         s_field.addData(
-            position = ELEMENT_NODAL, 
-            sectionPoint = sp_bot, 
-            instance = instance_1, 
-            labels = elem_label, 
-            data = sn_stress
+            position=ELEMENT_NODAL, 
+            # sectionPoint=sp_bot, 
+            instance=instance_1, 
+            labels=elem_label, 
+            data=sn_stress
             )
         odb_vis.save()
     
@@ -773,72 +831,72 @@ def visualization2D(odb_vis, project_name, node_coord, elem_connt_s3, elem_connt
     # Strains at integration points
     if sgm_strain != []:
         s_field = frame_1.FieldOutput(
-            name = 'EGM', 
-            description = 'Strains at Gaussian points in the material coordinates.', 
-            type = TENSOR_3D_FULL, 
-            componentLabels = ('EGM11', 'EGM22', 'EGM33', '2EGM23', '2EGM13', '2EGM12'),
+            name='EGM', 
+            description='Strains at Gaussian points in the material coordinates.', 
+            type=TENSOR_3D_FULL, 
+            componentLabels=('EGM11', 'EGM22', 'EGM33', '2EGM23', '2EGM13', '2EGM12'),
             validInvariants=(MISES, TRESCA, PRESS, INV3, MAX_PRINCIPAL, MID_PRINCIPAL, MIN_PRINCIPAL),
             )
         s_field.addData(
-            position = INTEGRATION_POINT, 
-            sectionPoint = sp_bot, 
-            instance = instance_1, 
-            labels = elem_label, 
-            data = sgm_strain
+            position=INTEGRATION_POINT, 
+            # sectionPoint=sp_bot, 
+            instance=instance_1, 
+            labels=elem_label, 
+            data=sgm_strain
             )
         odb_vis.save()
     
     # Stresses at integration points
     if sgm_stress != []:
         s_field = frame_1.FieldOutput(
-            name = 'SGM', 
-            description = 'Stresses at Gaussian points in the material coordinates.', 
-            type = TENSOR_3D_FULL, 
-            componentLabels = ('SGM11', 'SGM22', 'SGM33', 'SGM23', 'SGM13', 'SGM12'),
+            name='SGM', 
+            description='Stresses at Gaussian points in the material coordinates.', 
+            type=TENSOR_3D_FULL, 
+            componentLabels=('SGM11', 'SGM22', 'SGM33', 'SGM23', 'SGM13', 'SGM12'),
             validInvariants=(MISES, TRESCA, PRESS, INV3, MAX_PRINCIPAL, MID_PRINCIPAL, MIN_PRINCIPAL),
             )
         s_field.addData(
-            position = INTEGRATION_POINT, 
-            sectionPoint = sp_bot, 
-            instance = instance_1, 
-            labels = elem_label, 
-            data = sgm_stress
+            position=INTEGRATION_POINT, 
+            # sectionPoint=sp_bot, 
+            instance=instance_1, 
+            labels=elem_label, 
+            data=sgm_stress
             )
         odb_vis.save()
     
     # Strains at elemental nodes
     if snm_strain != []:
         e_field = frame_1.FieldOutput(
-            name = 'ENM', 
-            description = 'Strains at nodes in the material coordinates.', 
-            type = TENSOR_3D_FULL, 
-            componentLabels = ('ENM11', 'ENM22', 'ENM33', '2ENM23', '2ENM13', '2ENM12'),
+            name='ENM', 
+            description='Strains at nodes in the material coordinates.', 
+            type=TENSOR_3D_FULL, 
+            componentLabels=('ENM11', 'ENM22', 'ENM33', '2ENM23', '2ENM13', '2ENM12'),
             validInvariants=(MISES, TRESCA, PRESS, INV3, MAX_PRINCIPAL, MID_PRINCIPAL, MIN_PRINCIPAL),
             )
         e_field.addData(
-            position = ELEMENT_NODAL, 
-            sectionPoint = sp_bot, 
-            instance = instance_1, 
-            labels = elem_label, 
-            data = snm_strain
+            position=ELEMENT_NODAL, 
+            # sectionPoint=sp_bot, 
+            instance=instance_1, 
+            labels=elem_label, 
+            data=snm_strain
             )
         odb_vis.save()
     
     # Stresses at elemental nodes
     if snm_stress != []:
         s_field = frame_1.FieldOutput(
-            name = 'SNM', 
-            description = 'Stresses at nodes in the material coordinates.', 
-            type = TENSOR_3D_FULL, 
-            componentLabels = ('SNM11', 'SNM22', 'SNM33', 'SNM23', 'SNM13', 'SNM12'),
+            name='SNM', 
+            description='Stresses at nodes in the material coordinates.', 
+            type=TENSOR_3D_FULL, 
+            componentLabels=('SNM11', 'SNM22', 'SNM33', 'SNM23', 'SNM13', 'SNM12'),
             validInvariants=(MISES, TRESCA, PRESS, INV3, MAX_PRINCIPAL, MID_PRINCIPAL, MIN_PRINCIPAL),
             )
         s_field.addData(
-            position = ELEMENT_NODAL, 
-            sectionPoint = sp_bot, 
-            instance = instance_1, 
-            labels = elem_label, 
-            data = snm_stress
+            position=ELEMENT_NODAL, 
+            # sectionPoint=sp_bot, 
+            instance=instance_1, 
+            labels=elem_label, 
+            data=snm_stress
             )
         odb_vis.save()
         

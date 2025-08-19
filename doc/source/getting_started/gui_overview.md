@@ -1,8 +1,13 @@
+(start-overview)=
 # GUI Overview
 
-The only difference compared with the original Abaqus GUI is the added toolbar group.
+The only difference compared with the original Abaqus GUI is the added SwiftComp toolbar.
 
-![](/_static/images/toolbar-annotated.png)
+```{figure} /_static/images/toolbar-annotated.png
+:align: center
+
+SwiftComp toolbar.
+```
 
 The toolbar group composes of gadget buttons (1, 2), SG creation tool buttons (3, 4, 5, 6, 7, 8), SwiftComp analysis and visualization tool buttons (9, 10, 11, 12).
 Their functions can be simply described as follows:

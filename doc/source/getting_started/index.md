@@ -6,7 +6,7 @@
 :caption: Contents:
 
 installation
-quick_start
 gui_overview
+feedback
 ```
 

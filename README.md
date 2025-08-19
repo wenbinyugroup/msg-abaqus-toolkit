@@ -4,6 +4,7 @@ A toolkit for VABS/MSG in Abaqus.
 
 ## Overview
 
+Documentation: https://wenbinyugroup.github.io/msg-abaqus-toolkit
 
 ## Quick Start
 
