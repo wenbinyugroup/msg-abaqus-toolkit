@@ -13,7 +13,7 @@ SwiftComp enables engineers to model composites as a black aluminum, capturing d
 This saves orders of magnitude in computing time and resources without sacrificing accuracy, while enabling engineers to tackle complex problems effectively.
 
 SwiftComp can be used as a standalone code or as a plugin for other commercial codes.
-To facilitate the use of SwiftComp, a simple graphic user interface (GUI) with a toolbar integrated the functions of SwiftComp is developed in Abaqus.
+To facilitate the use of SwiftComp, a simple graphic user interface (GUI) with a toolbar integrating the functions of SwiftComp is developed in Abaqus.
 This manual focuses on explaining how to use Abaqus-SwiftComp GUI.
 
 
