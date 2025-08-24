@@ -14,6 +14,7 @@ import utilities_abq as uab
 from textRepr import *
 from UcheckDehoVisual import *
 import os.path
+import os, shutil
 
 # ==============================================================================
 #
@@ -91,9 +92,11 @@ def visualization(macro_model, ap_flag, sc_input):
     elem_connt_s9 = []
     
     elem_connt_c4  = []
+    elem_connt_c6  = []
     elem_connt_c10 = []
     elem_connt_c8  = []
     elem_connt_c20 = []
+    elem_connt_c15 = []
     
     elem_connt_b31_temp=[]
     elem_connt_b31 = []
@@ -150,10 +153,14 @@ def visualization(macro_model, ap_flag, sc_input):
                     elif len(line) >= 22:       # 3D element
                         if len(temp) == 5:
                             elem_connt_c4.append(tuple(temp))
+                        elif len(temp) == 7:   
+                            elem_connt_c6.append(tuple(temp))
                         elif len(temp) == 11:
                             elem_connt_c10.append(tuple(temp))
                         elif len(temp) == 9:
                             elem_connt_c8.append(tuple(temp))
+                        elif len(temp) == 16:  
+                            elem_connt_c15.append(tuple(temp))
                         elif len(temp) == 21:
                             elem_connt_c20.append(tuple(temp))
                     sect = line[1]                  # Read material sections
@@ -167,8 +174,10 @@ def visualization(macro_model, ap_flag, sc_input):
     elem_connt_s4.sort()
     elem_connt_s8.sort()
     elem_connt_c4.sort()
+    elem_connt_c6.sort()
     elem_connt_c10.sort()
     elem_connt_c8.sort()
+    elem_connt_c15.sort() 
     elem_connt_c20.sort()
     
     # 1D 
@@ -363,6 +372,27 @@ def visualization(macro_model, ap_flag, sc_input):
     odb_title = project_name
     odb_file_name = os.path.join(project_path, project_name + '.odb')
 
+    # Check if ODB already exists
+    if os.path.exists(odb_file_name):
+        print("--! Warning: ODB file already exists and will be overwritten.")
+        try:
+            # Try closing if it's open
+            try:
+                odb = openOdb(odb_file_name)
+                odb.close()
+            except:
+                pass
+
+            os.remove(odb_file_name)
+            aux_dir = odb_file_name + "_f"
+            if os.path.isdir(aux_dir):
+                shutil.rmtree(aux_dir)
+
+            print("--> Existing ODB deleted.")
+        except OSError as e:
+            print("--! Failed to delete existing ODB: {}".format(e))
+            sys.exit(1)
+    
     odb = Odb(name = odb_name, 
               analysisTitle = odb_title, 
               description = 'SwiftComp Dehomogenization', 
@@ -379,10 +409,15 @@ def visualization(macro_model, ap_flag, sc_input):
                         u_data, sg_strain, sg_stress, sn_strain, sn_stress, 
                         sgm_strain, sgm_stress, snm_strain, snm_stress)
     elif nsg == 3:
-        visualization3D(odb, project_name, node_coord, elem_connt_c4, elem_connt_c10, 
-                        elem_connt_c8, elem_connt_c20, elem_sectn, node_label, elem_label, 
-                        u_data, sg_strain, sg_stress, sn_strain, sn_stress, 
-                        sgm_strain, sgm_stress, snm_strain, snm_stress)
+        visualization3D(odb, project_name, node_coord,
+                        elem_connt_c4, elem_connt_c6,
+                        elem_connt_c8, elem_connt_c10,
+                        elem_connt_c15, elem_connt_c20,
+                        elem_sectn, node_label, elem_label,
+                        u_data, sg_strain, sg_stress,
+                        sn_strain, sn_stress,
+                        sgm_strain, sgm_stress,
+                        snm_strain, snm_stress)
     elif nsg == 1:
         visualization1D(odb, project_name, node_coord, elem_connt_b31, elem_sectn, node_label, elem_label, 
                         u_data, sg_strain, sg_stress, sn_strain, sn_stress)
@@ -910,9 +945,10 @@ def visualization2D(
 #
 # ==============================================================================
 
-def visualization3D(odb_vis, project_name, node_coord, elem_connt_c4, elem_connt_c10, 
-                    elem_connt_c8, elem_connt_c20, elem_sectn, node_label, elem_label, 
-                    u_data, sg_strain, sg_stress, sn_strain, sn_stress, 
+def visualization3D(odb_vis, project_name, node_coord, elem_connt_c4, elem_connt_c6,
+                    elem_connt_c8, elem_connt_c10, elem_connt_c15, elem_connt_c20,
+                    elem_sectn, node_label, elem_label,
+                    u_data, sg_strain, sg_stress, sn_strain, sn_stress,
                     sgm_strain, sgm_stress, snm_strain, snm_stress):
 
     # -----------------------
@@ -955,12 +991,18 @@ def visualization3D(odb_vis, project_name, node_coord, elem_connt_c4, elem_connt
     if elem_connt_c4 != []:
         elem_connt_c4 = tuple(elem_connt_c4)
         part_1.addElements(elementData = elem_connt_c4, type = 'C3D4', elementSetName = 'eSet-c3d4')
+    if elem_connt_c6 != []:
+        elem_connt_c6 = tuple(elem_connt_c6)
+        part_1.addElements(elementData = elem_connt_c6, type = 'C3D6', elementSetName = 'eSet-c3d6')
     if elem_connt_c10 != []:
         elem_connt_c10 = tuple(elem_connt_c10)
         part_1.addElements(elementData = elem_connt_c10, type = 'C3D10', elementSetName = 'eSet-c3d10')
     if elem_connt_c8 != []:
         elem_connt_c8 = tuple(elem_connt_c8)
         part_1.addElements(elementData = elem_connt_c8, type = 'C3D8', elementSetName = 'eSet-c3d8')
+    if elem_connt_c15 != []:
+        elem_connt_c15 = tuple(elem_connt_c15)
+        part_1.addElements(elementData = elem_connt_c15, type = 'C3D15', elementSetName = 'eSet-c3d15')
     if elem_connt_c20 != []:
         elem_connt_c20 = tuple(elem_connt_c20)
         part_1.addElements(elementData = elem_connt_c20, type = 'C3D20', elementSetName = 'eSet-c3d20')
@@ -1004,7 +1046,7 @@ def visualization3D(odb_vis, project_name, node_coord, elem_connt_c4, elem_connt
     
     # ---- GLOBAL COORDINATES ----
     print(' --> Importing strain and stress data under global coordinates...')
-    # Strains at integration points
+    """# Strains at integration points
     if sg_strain != []:
         print('  --> Strains at integration points...')
         s_field = frame_1.FieldOutput(
@@ -1038,7 +1080,7 @@ def visualization3D(odb_vis, project_name, node_coord, elem_connt_c4, elem_connt
             labels = elem_label, 
             data = sg_stress
             )
-        odb_vis.save()
+        odb_vis.save()"""
     
     # Strains at elemental nodes
     if sn_strain != []:
@@ -1079,7 +1121,7 @@ def visualization3D(odb_vis, project_name, node_coord, elem_connt_c4, elem_connt
     
     # ---- MATERIAL COORDINATES ----
     print(' --> Importing strain and stress data under material coordinates...')
-    # Strains at integration points
+    """# Strains at integration points
     if sgm_strain != []:
         print('  --> Strains at integration points...')
         s_field = frame_1.FieldOutput(
@@ -1113,7 +1155,7 @@ def visualization3D(odb_vis, project_name, node_coord, elem_connt_c4, elem_connt
             labels = elem_label, 
             data = sgm_stress
             )
-        odb_vis.save()
+        odb_vis.save()"""
     
     # Strains at elemental nodes
     if snm_strain != []:
