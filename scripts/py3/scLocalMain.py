@@ -21,7 +21,7 @@ def localization(
         sh2='',                    # extra 2 components for Mindlin: γ13 γ23 (strain) or N13 N23 (stress)
         tm=0.0, ap_flag=False,
         beam_model="Euler",        # Euler or Timoshenko (for 1D)
-        shell_model="Kirchhoff"    # Kirchhoff or Mindlin/Reissner–Mindlin (for 2D)
+        shell_model="Kirchhoff"    # Kirchhoff or Mindlin (for 2D)
     ):
     """
     Localization analysis for a SG model or a SwiftComp input file.
@@ -82,10 +82,15 @@ def localization(
 
     mdb.customData.Repository('sgDehomoDataSets', SgDehomoData)
     
-    SCfileName, sc_input, analysis,  macro_model, macro_model_dimension, ap_flag = sgmodel_info(
+    SCfileName, sc_input, analysis,  macro_model, macro_model_dimension, ap_flag, sc_dim, sc_sub = sgmodel_info(
         sgmodel_source=sgmodel_source, sg_name=sg_name, sc_input=sc_input,
         analysis=analysis, macro_model=macro_model, ap_flag=ap_flag)
 
+    dim_ui = {1:"1D", 2:"2D", 3:"3D"}.get(macro_model, str(macro_model))
+    sub_ui = ("Solid" if dim_ui=="3D" else (beam_model if dim_ui=="1D" else shell_model))
+    if sc_dim != dim_ui or sc_sub != sub_ui:
+        raise ValueError("The SwiftComp input file is for %s %s model, but you selected %s %s model."
+                         % (sc_dim, sc_sub, dim_ui, sub_ui))
     
 #-----------------------------------------------------------
     print(sc_input)
@@ -126,7 +131,7 @@ def localization(
             print('shell macroscopic strain and curvatures :' if load_measure==1 else 'shell generalized stress resultants :')
             print(se)
             print('Shell model: %s' % shell_model)
-            if shell_model.lower() in ('mindlin','reissner-mindlin','reissner–mindlin'):
+            if shell_model.lower() in ('mindlin','reissner-mindlin'):
                 print('Mindlin extra pair:')
                 print(mindlin_extra)
         elif macro_model_dimension=='3D':
@@ -150,31 +155,27 @@ def localization(
         # Write generalized quantities by dimensional model
         if macro_model_dimension == '1D':
             # be contains [e11, k11, k12, k13] OR for stress [F1, M1, M2, M3] if user entered that order
-            writeFormat(fout, 'E'*4, be)
+            fout.write(" ".join(str(float(x)) for x in be) + "\n")
             # For Timoshenko we don't need to force placeholders; GUI provides correct triplets in 'be'
             # and 'bk', already folded above.
 
         elif macro_model_dimension == '2D':
             # For KL: 6 numbers. For Mindlin: 6 + 2 numbers (extra pair).
             # 'se' already includes membrane (3) + bending (3) after folding se[0] + sk[0].
-            writeFormat(fout, 'E'*6, se)
-            # If Mindlin/Reissner–Mindlin, append the extra 2 values.
-            if len(mindlin_extra) > 0:
+            if shell_model.lower() in ('mindlin','reissner-mindlin') and len(mindlin_extra) > 0:
                 pair = (mindlin_extra + [0.0, 0.0])[:2]
-                fout.write('\n')
-                writeFormat(fout, 'E'*2, pair)
+                all_vals = list(se) + list(pair)
+                fout.write(" ".join(str(float(x)) for x in all_vals) + "\n")
+            else:
+                fout.write(" ".join(str(float(x)) for x in se) + "\n")
 
         elif macro_model_dimension == '3D':
             # 6 numbers for 3D (strain or stress), already folded into 'e'
-            writeFormat(fout, 'E'*6, e)
+            fout.write(" ".join(str(float(x)) for x in e) + "\n")
 
         fout.write('\n')
         if analysis==1:
             writeFormat(fout, 'E', tm)
-
-
-    print('before try')
-
 
     #execute dehomogenization
     try:

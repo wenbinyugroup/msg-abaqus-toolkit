@@ -18,6 +18,7 @@ from visualization import *
 from connectorBehavior import *
 import os
 import time
+import math
 from utilities import *
 from UwriteMaterials import *
 from userDataSG import *
@@ -32,20 +33,37 @@ def generateInputFromCAE(model_source, macro_model_dimension, analysis, elem_fla
 
     model    = mdb.models[model_name]
     part     = model.parts[part_name]
-    nodes    = part.nodes    
+    nodes    = part.nodes
     elements = part.elements
-    
+
+    # reject composite/elemental orientations in CAE path
+    has_comp = False
+    try:
+        for _nm,_ly in part.compositeLayups.items():
+            if not _ly.suppressed:
+                has_comp = True
+                break
+    except:
+        pass
+    has_orient = False
+    try:
+        if len(part.orientations.keys()) > 0:
+            has_orient = True
+    except:
+        pass
+    if has_comp or has_orient:
+        raise ValueError("Composite layup or elemental orientation detected. CAE files do not contain elemental orientations for each element. Please write input and use the input file to run SwiftComp.")
+
     if nSG == 2:
         nMaxnode_elem  = 9
-        nodeinfoFormat = strFormat('dFF') #'{0[0]:8d}{0[1]:16.6E}{0[2]:16.6E}}\n'
+        nodeinfoFormat = strFormat('dFF')
         eleminfoFormat = eleFormat('dd','d'*9)
     elif nSG == 3:
         nMaxnode_elem  = 20
-        nodeinfoFormat = strFormat('dFFF') #'{0[0]:8d}{1[0]:16.6E}{1[1]:16.6E}{2[2]:16.6E}\n'
+        nodeinfoFormat = strFormat('dFFF')
         eleminfoFormat = eleFormat('dd','d'*20)
 
     #### start to write
-    
     if new_filename == '':
         swiftcomp_filename = part_name + '_nSG' + str(nSG) + '_' + macro_model_dimension + '_' + str(elements[0].type)
     else:
@@ -58,7 +76,7 @@ def generateInputFromCAE(model_source, macro_model_dimension, analysis, elem_fla
     else:
         apstr = ''.join(map(str, apvector))
         apstr = 'MIX'+apstr
-    swiftcomp_filename = swiftcomp_filename+apstr
+    swiftcomp_filename = swiftcomp_filename + apstr
     
     mdb.customData.Repository('sgs', Sg)
     sg_name = swiftcomp_filename
@@ -72,7 +90,7 @@ def generateInputFromCAE(model_source, macro_model_dimension, analysis, elem_fla
                 apstr)
     if info == 1:
         print('--> Create sg model: %s' % sg_name)
-        print('    mdb.customData.sgs[\'%s\']' %sg_name)
+        print('    mdb.customData.sgs[\'%s\']' % sg_name)
         prettyPrint(sg, 2)
         print('------------------------------')
     
@@ -92,7 +110,7 @@ def generateInputFromCAE(model_source, macro_model_dimension, analysis, elem_fla
         writeFormat(file, 'EE', cos)
         file.write('\n')  
         
-    writeFormat(file, 'd'*4, [analysis,elem_flag,trans_flag,temp_flag])
+    writeFormat(file, 'd'*4, [analysis, elem_flag, trans_flag, temp_flag])
     file.write('\n')
     
     if apvector != [0,0,0]:
@@ -102,20 +120,16 @@ def generateInputFromCAE(model_source, macro_model_dimension, analysis, elem_fla
     nnode = len(nodes)
     nelem = len(elements)
     
-    #read number of exploited materials
-    matSections = part.sectionAssignments
-    
+    # materials from section assignments (isotropic only in CAE path)
     matDict = {}
+    matSections = part.sectionAssignments
     for sec in matSections:
         if sec.suppressed == False:
-            #regionName = sec.region[0]
             secName = sec.sectionName
-            matName = model.sections[secName].material
-            
-            if matName not in matDict:
-                matDict[matName] = len(matDict) + 1
-    
-    # check the validity of materials: matDict
+            mname   = model.sections[secName].material
+            if mname not in matDict:
+                matDict[mname] = len(matDict) + 1
+
     checkMaterials(matDict, analysis, model_name)
                 
     nmate  = len(matDict)
@@ -126,7 +140,7 @@ def generateInputFromCAE(model_source, macro_model_dimension, analysis, elem_fla
     ntemp = 1
     temperature = 0
     
-    writeFormat(file, 'd'*6, [nSG,nnode,nelem,nmate,nslave,nlayer])
+    writeFormat(file, 'd'*6, [nSG, nnode, nelem, nmate, nslave, nlayer])
     file.write('\n')
         
     # write node info
@@ -134,13 +148,13 @@ def generateInputFromCAE(model_source, macro_model_dimension, analysis, elem_fla
     nodeStartTime = time.perf_counter()
 
     if nSG == 3:
-         for i in range(0, nnode):
-             ndCoords = nodes[i].coordinates
-             file.write(nodeinfoFormat.format([nodes[i].label, ndCoords[0], ndCoords[1], ndCoords[2]]))
+        for i in range(0, nnode):
+            ndCoords = nodes[i].coordinates
+            file.write(nodeinfoFormat.format([nodes[i].label, ndCoords[0], ndCoords[1], ndCoords[2]]))
     elif nSG == 2:    
-         for i in range(0, nnode):
-             ndCoords = nodes[i].coordinates    
-             file.write(nodeinfoFormat.format([nodes[i].label,ndCoords[1], ndCoords[2]]))
+        for i in range(0, nnode):
+            ndCoords = nodes[i].coordinates    
+            file.write(nodeinfoFormat.format([nodes[i].label, ndCoords[1], ndCoords[2]]))
              
     nodeEndTime   = time.perf_counter()
     writeNodetime = nodeEndTime - nodeStartTime
@@ -150,55 +164,37 @@ def generateInputFromCAE(model_source, macro_model_dimension, analysis, elem_fla
     
     elemStartTime = time.perf_counter()
 
-    #record element info
     labellist   = []
     matIDlist   = []
     connectlist = []
     
-    matSections = part.sectionAssignments
     for sec in matSections:
         if not sec.suppressed:
             regionName = sec.region[0]
-            secName = sec.sectionName
-        
-        matID = matDict[model.sections[secName].material]
-        
+            secName    = sec.sectionName
+        mid = matDict[model.sections[secName].material]
         setElem = part.sets[regionName].elements
-        
         for elem in setElem:
-            connect = elem.connectivity
-            n_connect = len(connect)
             labellist.append(elem.label)
-            matIDlist.append(matID)
-            ele_connectlist = []
-            
+            matIDlist.append(mid)
+            conn = list(elem.connectivity)
+            n_connect = len(conn)
             if nSG == 3:
-                nsc_connect = n_connect
-                for n in range(n_connect): 
-                    ele_connectlist.append(nodes[connect[n]].label)
-                    
-                if  n_connect == 10:  #if element type is C3D10M, insert a '0' before the 5th node in the element
-                    ele_connectlist.insert(4, 0)
-                    nsc_connect = 11
-                zeros = [0]*(nMaxnode_elem - nsc_connect)
-                ele_connectlist += zeros
-
-                connectlist.append(ele_connectlist)
-                    
+                out = [nodes[n].label for n in conn]
+                et  = str(elem.type).upper()
+                if et.startswith('C3D15') and n_connect == 15:
+                    out.insert(6, 0)
+                elif n_connect == 10:
+                    out.insert(4, 0)
+                out += [0]*(nMaxnode_elem - len(out))
+                connectlist.append(out)
             elif nSG == 2:
-                nsc_connect = n_connect
-                for n in range(n_connect): 
-                    ele_connectlist.append(nodes[connect[n]].label)
-                    
-                if  n_connect == 6:  #if element type is STRI65 or CPS6M etc. with 6 nodes, insert a '0' before the 4th node in the element
-                    ele_connectlist.insert(3, 0)
-                    nsc_connect = 7
-                zeros = [0]*(nMaxnode_elem - nsc_connect)
-                ele_connectlist += zeros
-
-                connectlist.append(ele_connectlist)
+                out = [nodes[n].label for n in conn]
+                if n_connect == 6:
+                    out.insert(3, 0)
+                out += [0]*(nMaxnode_elem - len(out))
+                connectlist.append(out)
                 
-    # sort and write element info
     combinedList = list(zip(labellist, matIDlist, connectlist))
     combinedList.sort()
     for elem_info in combinedList:

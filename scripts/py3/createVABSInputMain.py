@@ -38,7 +38,7 @@ def createVABSInputMain(
     results = reorgAbaqusInput(
         nsg, nodes, elements2d, elements3d, elsets,
         sections, distributions, orientations,
-        materials, densities, elastics
+        materials, densities, elastics, trans_flag
     )
     n_coord = results['nodes']
     eid_all = results['all elements ids']

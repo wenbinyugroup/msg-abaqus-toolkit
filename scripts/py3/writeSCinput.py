@@ -1,5 +1,4 @@
 import codecs
-import numpy as np
 from utilities import *
 # from parseAbaqusInput import *
 
@@ -91,43 +90,40 @@ def writeSCInput(
         # ----- Write nodal coordinates ------------------------------
         if nsg == 1:
             for n in n_coord:
-                writeFormat(fout, 'dE', n[[0, 3]])
+                writeFormat(fout, 'dE', [n[0], n[3]])
         elif nsg == 2:
             for n in n_coord:
-                # print n[[0, 2, 3]]
-                writeFormat(fout, 'dEE', n[[0, 2, 3]])
+                writeFormat(fout, 'dEE', [n[0], n[2], n[3]])
         elif nsg == 3:
             for n in n_coord:
-                writeFormat(fout, 'dEEE', n[[0, 1, 2, 3]])
+                writeFormat(fout, 'dEEE', [n[0], n[1], n[2], n[3]])
         fout.write('\n')
 
         # ----- Write element connectivities -------------------------
-        # eid_lid = {eid1: lid1, eid2: lid2, ...}
         for e in e_connt_2d:
-            e = np.insert(e, 1, eid_lid[e[0]])
-            writeFormat(fout, 'd'*11, e)
+            eid = e[0]
+            lid = eid_lid[eid]
+            row = [eid, lid] + list(e[1:])
+            writeFormat(fout, 'd'*11, row)
         for e in e_connt_3d:
-            e = np.insert(e, 1, eid_lid[e[0]])
-            writeFormat(fout, 'd'*22, e)
+            eid = e[0]
+            lid = eid_lid[eid]
+            row = [eid, lid] + list(e[1:])
+            writeFormat(fout, 'd'*22, row)
         fout.write('\n')
 
         # ----- Write local coordinates ------------------------------
-        for distr in distr_all:
-            eid = int(distr[0])
-            eid_all.remove(eid)
-            fout.write('{0:10d}'.format(eid))
-            writeFormat(fout, 'E'*9, distr[1:])
-        if len(eid_all) > 0:
-            a = [1.0, 0.0, 0.0]
-            b = [0.0, 1.0, 0.0]
-            c = [0.0, 0.0, 0.0]
-            for eid in eid_all:
-                writeFormat(fout, 'd'+'E'*9, [eid]+a+b+c)
-        fout.write('\n')
+        if distr_all and len(distr_all) > 0:
+            for distr in distr_all:
+                eid = int(distr[0])
+                if eid in eid_all:
+                    eid_all.remove(eid)
+                fout.write('{0:10d}'.format(eid))
+                writeFormat(fout, 'E'*9, distr[1:])
+            fout.write('\n')
 
         # ----- Write layer types ------------------------------------
         for lyt in layer_types:
-            # print lyt
             writeFormat(fout, 'ddE', lyt)
         fout.write('\n')
 
@@ -135,21 +131,21 @@ def writeSCInput(
         for mid, prop in list(materials.items()):
             writeFormat(fout, 'ddd', [mid, prop['isotropy'], prop['ntemp']])
             for i in range(prop['ntemp']):
-                # print prop['elastic'][:2]
-                writeFormat(fout, 'EE', prop['elastic'][i][:2])
+                elastic = prop['elastic'][i]
+                writeFormat(fout, 'EE', elastic[:2])
                 if prop['isotropy'] == 0:
-                    writeFormat(fout, 'EE', prop['elastic'][i][2:])
+                    writeFormat(fout, 'EE', elastic[2:])
                 elif prop['isotropy'] == 1:
-                    writeFormat(fout, 'EEE', prop['elastic'][i][2:5])
-                    writeFormat(fout, 'EEE', prop['elastic'][i][5:8])
-                    writeFormat(fout, 'EEE', prop['elastic'][i][8:11])
+                    writeFormat(fout, 'EEE', elastic[2:5])
+                    writeFormat(fout, 'EEE', elastic[5:8])
+                    writeFormat(fout, 'EEE', elastic[8:11])
                 elif prop['isotropy'] == 2:
-                    writeFormat(fout, 'E'*6, prop['elastic'][i][2:8])
-                    writeFormat(fout, 'E'*5, prop['elastic'][i][8:13])
-                    writeFormat(fout, 'E'*4, prop['elastic'][i][13:17])
-                    writeFormat(fout, 'E'*3, prop['elastic'][i][17:20])
-                    writeFormat(fout, 'E'*2, prop['elastic'][i][20:22])
-                    writeFormat(fout, 'E'*1, prop['elastic'][i][22:23])
+                    writeFormat(fout, 'E'*6, elastic[2:8])
+                    writeFormat(fout, 'E'*5, elastic[8:13])
+                    writeFormat(fout, 'E'*4, elastic[13:17])
+                    writeFormat(fout, 'E'*3, elastic[17:20])
+                    writeFormat(fout, 'E'*2, elastic[20:22])
+                    writeFormat(fout, 'E'*1, elastic[22:23])
                 fout.write('\n')
             fout.write('\n')
         fout.write('\n')
