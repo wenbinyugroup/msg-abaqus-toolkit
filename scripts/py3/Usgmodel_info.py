@@ -7,6 +7,40 @@ from utilities import *
 import os
 from userDataSG import *
 
+def _get_sc_dim_sub(sc_path):
+    import re
+    def _noncomment_lines(path):
+        with open(path, 'r') as f:
+            for line in f:
+                s=line.strip()
+                if s and not s.startswith('#'):
+                    yield s
+    lines=list(_noncomment_lines(sc_path))
+    if not lines:
+        return ("3D","Solid")
+    def _is_int(t):
+        try: int(t); return True
+        except: return False
+    toks=re.split(r'\s+', lines[0])
+    if not toks or not _is_int(toks[0]) or int(toks[0]) not in (0,1,2,3):
+        return ("3D","Solid")
+    mflag=int(toks[0])
+    def _count_reals(s):
+        try:
+            return len([x for x in re.split(r'\s+', s) if x and (x=='0' or x=='0.0' or float(x)==float(x))])
+        except:
+            return 0
+    n2=_count_reals(lines[1]) if len(lines)>1 else 0
+    n3=_count_reals(lines[2]) if len(lines)>2 else 0
+    if n2==3 and n3>=2:
+        dim="1D"
+        sub={0:"Euler",1:"Timoshenko",2:"Vlasov",3:"Trapeze"}.get(mflag,"Unknown")
+    elif n2==2:
+        dim="2D"
+        sub={0:"Kirchhoff",1:"Mindlin"}.get(mflag,"Unknown")
+    else:
+        dim,sub="3D","Solid"
+    return (dim, sub)
 
 def sgmodel_info(sgmodel_source, sg_name, sc_input,  analysis, macro_model, ap_flag):
 
@@ -61,5 +95,5 @@ def sgmodel_info(sgmodel_source, sg_name, sc_input,  analysis, macro_model, ap_f
         macro_model_dimension = str(macro_model) + 'D'
         
     
-    
-    return SCfileName, sc_input, analysis, macro_model, macro_model_dimension, ap_flag
+    sc_dim, sc_sub = _get_sc_dim_sub(sc_input)
+    return SCfileName, sc_input, analysis, macro_model, macro_model_dimension, ap_flag, sc_dim, sc_sub
