@@ -97,24 +97,32 @@ def reorgAbaqusInput(
     # Orientations
     ori_deg = {}
     for o in orientations:
-        name = o.parameter.get('name', '').strip()
+        name = (o.parameter.get('name', '') or '').strip()
         rows = getattr(o, 'data', None) or []
         if not name:
             raise ValueError("Encountered an *ORIENTATION without a name.")
         if not rows:
             raise ValueError(f"*ORIENTATION '{name}' has no data rows.")
 
+        # non-discrete if first row is numeric vectors
+        first = rows[0]
+        if isinstance(first, (list, tuple)) and all(isinstance(v, (int, float)) for v in first):
+            raise ValueError(
+                f"*ORIENTATION '{name}' is not defined using Discrete. "
+                f"Only discrete orientations are supported."
+            )
+
         found = False
         for row in rows:
-            if all(isinstance(v, (int, float)) for v in row):
-                if len(row) >= 2 and int(round(row[0])) in (1, 2, 3):
-                    ori_deg[name] = float(row[1])  # angle in degrees
-                    found = True
-                    break
+            if isinstance(row, (list, tuple)) and len(row) == 2 and \
+               all(isinstance(v, (int, float)) for v in row) and int(round(row[0])) in (1, 2, 3):
+                ori_deg[name] = float(row[1])
+                found = True
+                break
 
         if not found:
             raise ValueError(
-                f"*ORIENTATION '{name}' must include a numeric line 'nDirs, angle'. "
+                f"*ORIENTATION '{name}' must include a numeric line '(nDirs, angle)'. "
                 f"Got rows: {rows}"
             )
         
