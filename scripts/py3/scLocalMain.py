@@ -18,7 +18,11 @@ def localization(
         sg_name='', sc_input='', analysis=0, macro_model=3,
         load_measure=1,
         be='', bk='', se='', sk='', en='', es='',
-        tm=0.0, ap_flag=False):
+        sh2='',                    # extra 2 components for Mindlin: γ13 γ23 (strain) or N13 N23 (stress)
+        tm=0.0, ap_flag=False,
+        beam_model="Euler",        # Euler or Timoshenko (for 1D)
+        shell_model="Kirchhoff"    # Kirchhoff or Mindlin/Reissner–Mindlin (for 2D)
+    ):
     """
     Localization analysis for a SG model or a SwiftComp input file.
 
@@ -66,24 +70,39 @@ def localization(
     elif en != '' and es != '':
         e = en[0] + es[0]
 
+    # Handle extra Mindlin pair (γ13, γ23) or (N13, N23).
+    # Accept from explicit 'sh2' if provided; otherwise, fall back to es[0][:2] if user entered via es.
+    mindlin_extra = []
+    if isinstance(sh2, (list, tuple)) and len(sh2) > 0:
+        mindlin_extra = list(sh2[0])
+    elif isinstance(es, (list, tuple)) and len(es) > 0:
+        # If GUI provided γ13, γ23 (or N13, N23) via es for Mindlin, take the first two.
+        if isinstance(es[0], (list, tuple)) and len(es[0]) >= 2:
+            mindlin_extra = list(es[0][:2])
+
     mdb.customData.Repository('sgDehomoDataSets', SgDehomoData)
     
-    SCfileName, sc_input, analysis,  macro_model, macro_model_dimension, ap_flag=sgmodel_info(sgmodel_source=sgmodel_source, sg_name=sg_name, sc_input=sc_input,  analysis=analysis, macro_model=macro_model, ap_flag=ap_flag)
+    SCfileName, sc_input, analysis,  macro_model, macro_model_dimension, ap_flag = sgmodel_info(
+        sgmodel_source=sgmodel_source, sg_name=sg_name, sc_input=sc_input,
+        analysis=analysis, macro_model=macro_model, ap_flag=ap_flag)
 
     
 #-----------------------------------------------------------
     print(sc_input)
-    sgDehomoData_name=SCfileName
+    sgDehomoData_name = SCfileName
     sc_global = sc_input + r'.glb'
-    sc_input_sc=os.path.basename(sc_input)
+    sc_input_sc = os.path.basename(sc_input)
     # Check if there is a odb file with the destination name have already exist:
     checkDehoVisual(sc_input_sc, 'Dehomo')
 
 
     
-    sgDehomoData=mdb.customData.SgDehomoData(name=sgDehomoData_name)
-    sgDehomoData.createSgDehomoData(debug, sgmodel_source, sg_name,sc_input,analysis,macro_model,
-                    macro_displacement=tuple(v), macro_roatation=tuple(c), beam_strain=tuple(be), shell_strain=tuple(se),solid_strain=tuple(e), tm=tm)
+    sgDehomoData = mdb.customData.SgDehomoData(name=sgDehomoData_name)
+    sgDehomoData.createSgDehomoData(
+        debug, sgmodel_source, sg_name, sc_input, analysis, macro_model,
+        macro_displacement=tuple(v), macro_roatation=tuple(c),
+        beam_strain=tuple(be), shell_strain=tuple(se), solid_strain=tuple(e), tm=tm,
+        beam_model=beam_model)
     if info==1:
         print(('---> Create sgDehomoData: %s' % sg_name))
         print(('    mdb.customData.sgDehomoDataSets[\'%s\']' % sgDehomoData_name))
@@ -100,13 +119,18 @@ def localization(
         print('Macroscopic roatations')
         print(c)
         if macro_model_dimension=='1D':
-            print('beam macroscopic strain and curvatures :')
+            print('beam macroscopic strain and curvatures :' if load_measure==1 else 'beam generalized stress resultants :')
             print(be)
+            print('Beam model: %s' % beam_model)
         elif macro_model_dimension=='2D':
-            print('shell macroscopic strain and curvatures :')
+            print('shell macroscopic strain and curvatures :' if load_measure==1 else 'shell generalized stress resultants :')
             print(se)
+            print('Shell model: %s' % shell_model)
+            if shell_model.lower() in ('mindlin','reissner-mindlin','reissner–mindlin'):
+                print('Mindlin extra pair:')
+                print(mindlin_extra)
         elif macro_model_dimension=='3D':
-            print('3D solid macroscopic strain :')
+            print('3D solid macroscopic strain :' if load_measure==1 else '3D solid macroscopic stress :')
             print(e)
 
 
@@ -122,12 +146,28 @@ def localization(
         fout.write('\n')
         writeFormat(fout, 'd', [load_measure])
         fout.write('\n')
+
+        # Write generalized quantities by dimensional model
         if macro_model_dimension == '1D':
+            # be contains [e11, k11, k12, k13] OR for stress [F1, M1, M2, M3] if user entered that order
             writeFormat(fout, 'E'*4, be)
+            # For Timoshenko we don't need to force placeholders; GUI provides correct triplets in 'be'
+            # and 'bk', already folded above.
+
         elif macro_model_dimension == '2D':
+            # For KL: 6 numbers. For Mindlin: 6 + 2 numbers (extra pair).
+            # 'se' already includes membrane (3) + bending (3) after folding se[0] + sk[0].
             writeFormat(fout, 'E'*6, se)
+            # If Mindlin/Reissner–Mindlin, append the extra 2 values.
+            if len(mindlin_extra) > 0:
+                pair = (mindlin_extra + [0.0, 0.0])[:2]
+                fout.write('\n')
+                writeFormat(fout, 'E'*2, pair)
+
         elif macro_model_dimension == '3D':
+            # 6 numbers for 3D (strain or stress), already folded into 'e'
             writeFormat(fout, 'E'*6, e)
+
         fout.write('\n')
         if analysis==1:
             writeFormat(fout, 'E', tm)
@@ -168,4 +208,3 @@ def localization(
     print('Odb file creation time: %s' % str(visualTime))
 
     return
-

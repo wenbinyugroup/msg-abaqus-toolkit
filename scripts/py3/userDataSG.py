@@ -61,7 +61,10 @@ class SgDehomoData(CommandRegister):
     def createSgDehomoData(self, debug, sgmodel_source, sg_name, sc_input, 
                            analysis, macro_model, macro_displacement, 
                            macro_roatation, beam_strain, shell_strain, 
-                           solid_strain, tm=0.0):
+                           solid_strain, tm=0.0,
+                           load_measure=1,
+                           beam_model="Euler",
+                           shell_model="Kirchhoff"):
         
         if sgmodel_source == 1:
             self.sgmodel_source = 'fromSGmodel'
@@ -92,15 +95,18 @@ class SgDehomoData(CommandRegister):
             self.macro_model_dimension = str(macro_model) + 'D'
             self.analysis              = analysis
             
-        self.macro_displacement = macro_displacement #RegisteredTuple(macro_displacement)
-        self.macro_roatation    = macro_roatation #RegisteredTuple(macro_roatation)
+        self.macro_displacement = macro_displacement # RegisteredTuple(macro_displacement)
+        self.macro_roatation    = macro_roatation    # RegisteredTuple(macro_roatation)
+        self.load_measure       = load_measure       # 0: stress, 1: strain
         macro_model_dimension   = self.macro_model_dimension
         if macro_model_dimension == '1D':
-            self.macro_strain = beam_strain #RegisteredTuple(beam_strain)
+            self.macro_strain = beam_strain          # RegisteredTuple(beam_strain) or stress resultants slots
+            self.beam_model   = beam_model
         elif macro_model_dimension == '2D':
-            self.macro_strain = shell_strain #RegisteredTuple(shell_strain)
+            self.macro_strain = shell_strain         # RegisteredTuple(shell_strain) or stress resultants slots
+            self.shell_model  = shell_model
         elif macro_model_dimension == '3D':
-            self.macro_strain = solid_strain #RegisteredTuple(solid_strain)
+            self.macro_strain = solid_strain         # RegisteredTuple(solid_strain) or stress components
         
         if self.analysis == 1:
             self.temperature_increment = tm
@@ -109,4 +115,3 @@ class SgDehomoData(CommandRegister):
     
 mdb.customData.Repository('sgs', Sg)
 mdb.customData.Repository('sgDehomoDataSets', SgDehomoData)            
-        
