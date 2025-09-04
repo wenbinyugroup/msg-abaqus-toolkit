@@ -1,4 +1,5 @@
 import os
+import re
 
 def reorgAbaqusInput(
     nsg,
@@ -96,22 +97,35 @@ def reorgAbaqusInput(
     # Orientations
     ori_deg = {}
     for o in orientations:
-        name = o.parameter.get('name', '')
-        ang = 0.0
-        if getattr(o, 'data', None):
-            done = False
-            for row in o.data:
-                for v in row:
-                    try:
-                        ang = float(v)
-                        done = True
-                        break
-                    except Exception:
-                        pass
-                if done:
-                    break
-        ori_deg[name] = ang
+        name = (o.parameter.get('name', '') or '').strip()
+        rows = getattr(o, 'data', None) or []
+        if not name:
+            raise ValueError("Encountered an *ORIENTATION without a name.")
+        if not rows:
+            raise ValueError(f"*ORIENTATION '{name}' has no data rows.")
 
+        # non-discrete if first row is numeric vectors
+        first = rows[0]
+        if isinstance(first, (list, tuple)) and all(isinstance(v, (int, float)) for v in first):
+            raise ValueError(
+                f"*ORIENTATION '{name}' is not defined using Discrete. "
+                f"Only discrete orientations are supported."
+            )
+
+        found = False
+        for row in rows:
+            if isinstance(row, (list, tuple)) and len(row) == 2 and \
+               all(isinstance(v, (int, float)) for v in row) and int(round(row[0])) in (1, 2, 3):
+                ori_deg[name] = float(row[1])
+                found = True
+                break
+
+        if not found:
+            raise ValueError(
+                f"*ORIENTATION '{name}' must include a numeric line '(nDirs, angle)'. "
+                f"Got rows: {rows}"
+            )
+        
     # Distributions
     dist_by_name = {}
     for d in distributions:
@@ -213,7 +227,16 @@ def reorgAbaqusInput(
                     eid_lid[int(e)] = lid
 
             elif 'orientation' in params:
-                raise ValueError(f"Orientations are currently not supported by SwiftComp. Please use Composite Layups to define orientations.")
+                mraw = str(s.parameter.get('material', '')).strip()
+                mkey = mraw.upper()
+                if   mkey in mtr_name2id: mid = mtr_name2id[mkey]
+                elif mraw in mtr_name2id: mid = mtr_name2id[mraw]
+                else:
+                    raise ValueError(f"section material not found: '{mraw}'")
+                ang = float(ori_deg.get(onam, 0.0))
+                lid = get_lid(mid, ang)
+                for e in es:
+                    eid_lid[int(e)] = lid
 
             else:
                 mraw = str(s.parameter.get('material', '')).strip()
