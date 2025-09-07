@@ -95,7 +95,9 @@ def reorgAbaqusInput(
         mtr[mtr_id]['elastic'].append([0.0, rho] + list(elastic))
 
     # Orientations
-    ori_deg = {}
+    ori_deg  = {}  # discrete: name -> angle (from "(nDirs, angle)")
+    ori_axes = {}  # non-discrete: name -> (a1x,a1y,a1z,a2x,a2y,a2z)
+
     for o in orientations:
         name = (o.parameter.get('name', '') or '').strip()
         rows = getattr(o, 'data', None) or []
@@ -104,26 +106,31 @@ def reorgAbaqusInput(
         if not rows:
             raise ValueError(f"*ORIENTATION '{name}' has no data rows.")
 
-        # non-discrete if first row is numeric vectors
         first = rows[0]
         if isinstance(first, (list, tuple)) and all(isinstance(v, (int, float)) for v in first):
-            raise ValueError(
-                f"*ORIENTATION '{name}' is not defined using Discrete. "
-                f"Only discrete orientations are supported."
-            )
+            # Non-discrete orientation: first row must have 6 numbers (two direction vectors)
+            vec = [float(v) for v in first if v is not None]
+            if len(vec) != 6:
+                raise ValueError(
+                    f"*ORIENTATION '{name}' must provide 6 numbers for non-discrete "
+                    f"definition (got {len(vec)}: {vec})"
+                )
+            ori_axes[name] = tuple(vec)
+            continue
 
+        # Discrete orientation: look for "(nDirs, angle)" line
         found = False
         for row in rows:
-            if isinstance(row, (list, tuple)) and len(row) == 2 and \
-               all(isinstance(v, (int, float)) for v in row) and int(round(row[0])) in (1, 2, 3):
+            if (isinstance(row, (list, tuple)) and len(row) == 2 and
+                all(isinstance(v, (int, float)) for v in row) and int(round(row[0])) in (1, 2, 3)):
                 ori_deg[name] = float(row[1])
                 found = True
                 break
 
         if not found:
             raise ValueError(
-                f"*ORIENTATION '{name}' must include a numeric line '(nDirs, angle)'. "
-                f"Got rows: {rows}"
+                f"*ORIENTATION '{name}' must include either 6 numbers on the first line "
+                f"(non-discrete) or a '(nDirs, angle)' line (discrete). Got rows: {rows}"
             )
         
     # Distributions
@@ -175,7 +182,7 @@ def reorgAbaqusInput(
 
     # elements that have no composite/orientation but need identity transform
     plain_eids = set()
-
+    elset_axes = {}
     for s in sections:
         elset_key = s.parameter['elset']
         if elset_key not in elsets:
@@ -215,16 +222,24 @@ def reorgAbaqusInput(
                 if   mat_key in mtr_name2id: mid = mtr_name2id[mat_key]
                 elif mat_raw in mtr_name2id: mid = mtr_name2id[mat_raw]
                 else:
-                    raise ValueError(f"composite ply material not found: raw='{mat_raw}' upper='{mat_key}' available={sorted(mtr_name2id.keys())}")
+                    raise ValueError(
+                        f"composite ply material not found: raw='{mat_raw}' upper='{mat_key}' "
+                        f"available={sorted(mtr_name2id.keys())}"
+                    )
 
                 try:
                     ang = float(ply_row[3])
                 except Exception as e:
                     raise ValueError(f"composite ply angle not found or not numeric in section '{elset_key}': {e}")
 
+                onam = s.parameter.get('orientation', '')
+                if onam in ori_axes:
+                    elset_axes[elset_key] = ori_axes[onam]
+
                 lid = get_lid(mid, ang)
                 for e in es:
                     eid_lid[int(e)] = lid
+
 
             elif 'orientation' in params:
                 mraw = str(s.parameter.get('material', '')).strip()
@@ -233,7 +248,17 @@ def reorgAbaqusInput(
                 elif mraw in mtr_name2id: mid = mtr_name2id[mraw]
                 else:
                     raise ValueError(f"section material not found: '{mraw}'")
-                ang = float(ori_deg.get(onam, 0.0))
+
+                onam = s.parameter.get('orientation', '')  # orientation name on the section
+
+                # If orientation is non-discrete (six direction-cosine numbers), remember axes per elset.
+                if onam in ori_axes:
+                    elset_axes[elset_key] = ori_axes[onam]  # will be expanded into distributions later
+                    ang = 0.0  # layer type angle remains zero; axes carry the orientation
+                else:
+                    # Discrete: use stored angle (default 0.0 if not found)
+                    ang = float(ori_deg.get(onam, 0.0))
+
                 lid = get_lid(mid, ang)
                 for e in es:
                     eid_lid[int(e)] = lid
@@ -391,6 +416,16 @@ def reorgAbaqusInput(
                 rest = (flat[1:] + [0.0] * (need_cols - 1))[:need_cols - 1]
                 rows.append([eid] + rest)
 
+    # if there exist non-discrete orientation axes rows
+    if trans_flag != 0 and int(nsg) == 3 and elset_axes:
+        axes_rows = []
+        for elset_key, axes in elset_axes.items():
+            a1x, a1y, a1z, a2x, a2y, a2z = [float(x) for x in axes]
+            for e in elsets.get(elset_key, []):
+                eid = int(e)
+                axes_rows.append([float(eid), a1x, a1y, a1z, a2x, a2y, a2z])
+        rows = axes_rows + rows
+                
     # ensure identity transforms for elements without composite/orientation
     if trans_flag != 0 and plain_eids:
         have = {int(r[0]) for r in rows}
