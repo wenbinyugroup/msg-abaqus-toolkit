@@ -5,7 +5,7 @@ from main.scGenInput import *
 from main.scGen1DInput_aba import *
 from main.UdetermineVolume import *
 from main.UdetermineNSG import *
-from main.userDataSG import *
+from sg.sg_data import *
 from main.createSCInputMain import *
 import subprocess
 import time

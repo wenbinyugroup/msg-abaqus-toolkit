@@ -163,8 +163,8 @@ class VABSToolsetGui(AFXToolsetGui):
 
     def getKernelInitializationCommand(self):
         
-        h = 'from main import'
-        h += ' userDataSG, scHomoMain, scMacroMat, scLocalMain'
+        h = 'from sg import sg_data; from main import'
+        h += ' scHomoMain, scMacroMat, scLocalMain'
         h += ', scVisualMain, workplaneMain, layupsMain'
         h += ', sg1DMain, sg2DV5Main, sg2DLaminateMain'
         h += ', sg2DLaminateErase, sg2DReadFileMain, node9, sg3DV5Main'

@@ -7,7 +7,7 @@ from utils.utilities import *
 import os
 import time
 from customKernel import CommandRegister, RegisteredList , RegisteredTuple#, RepositorySupport
-from main.userDataSG import *
+from sg.sg_data import *
 from utils.UcheckDehoVisual import *
 from main.Usgmodel_info import *
 

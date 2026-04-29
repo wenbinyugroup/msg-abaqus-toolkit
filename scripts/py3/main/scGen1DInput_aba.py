@@ -20,7 +20,7 @@ import os
 # import time
 from utils.utilities import *
 from main.UwriteMaterials import *
-from main.userDataSG import *
+from sg.sg_data import *
 
 def generate_1DInputFromCAE(model_source, macro_model_dimension, analysis, elem_flag, trans_flag,
                             w, nSG, model_name, part_name, abaqus_input, new_filename, 

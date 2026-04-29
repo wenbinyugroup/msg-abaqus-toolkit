@@ -5,7 +5,7 @@ from abaqus import *
 from abaqusConstants import *
 from utils.utilities import *
 import os
-from main.userDataSG import *
+from sg.sg_data import *
 
 def _get_sc_dim_sub(sc_path):
     import re
