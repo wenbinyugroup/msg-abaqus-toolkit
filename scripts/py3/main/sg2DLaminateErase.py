@@ -4,13 +4,14 @@ from abaqus import *
 from abaqusConstants import *
 from utils.utilities import *
 from main import utilities_abq as uab
+from utils import abq_view
 import customKernel
 
 def eraseLayups(baseline, model_name):
     
     model = mdb.models[model_name]
-    vp_name = session.currentViewportName
-    part_name = session.viewports[vp_name].displayedObject.name
+    vp = abq_view.current_viewport()
+    part_name = abq_view.displayed_part_name(vp)
     p = model.parts[part_name]
     
     cst_models = mdb.customData.models
@@ -115,11 +116,7 @@ def eraseLayups(baseline, model_name):
     cst_models[model_name] = cst_model
     mdb.customData.models = cst_models
     
-    session.viewports[vp_name].enableMultipleColors()
-    session.viewports[vp_name].setColor(initialColor='#BDBDBD')
-    cmap=session.viewports[vp_name].colorMappings['Section']
-    session.viewports[vp_name].setColor(colorMapping=cmap)
-    session.viewports[vp_name].disableMultipleColors()
+    abq_view.apply_color_mapping('Section', vp=vp)
 
 
 

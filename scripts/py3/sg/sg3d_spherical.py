@@ -15,79 +15,43 @@ from abaqusConstants import *
 from caeModules import *
 import sketch
 from math import *
+from utils import abq_view
 
 
 def _viewport_or_none():
     """Return the current viewport when running with a GUI."""
-    try:
-        return session.viewports[session.currentViewportName]
-    except Exception:
-        return None
+    return abq_view.current_viewport()
 
 
 def _set_displayed_object_if_possible(displayed_object):
     """Update the current viewport when available."""
-    viewport = _viewport_or_none()
-    if viewport is not None:
-        viewport.setValues(displayedObject=displayed_object)
+    abq_view.set_displayed_object(displayed_object)
 
 
 def _configure_part_display(sectionAssignments=None, engineeringFeatures=None,
                             mesh=None, referenceRepresentation=None,
                             meshTechnique=None):
     """Apply part-display settings only when a viewport exists."""
-    viewport = _viewport_or_none()
-    if viewport is None:
-        return
-
-    kwargs = {}
-    if sectionAssignments is not None:
-        kwargs['sectionAssignments'] = sectionAssignments
-    if engineeringFeatures is not None:
-        kwargs['engineeringFeatures'] = engineeringFeatures
-    if mesh is not None:
-        kwargs['mesh'] = mesh
-    if kwargs:
-        viewport.partDisplay.setValues(**kwargs)
-
-    geometry_kwargs = {}
-    if referenceRepresentation is not None:
-        geometry_kwargs['referenceRepresentation'] = referenceRepresentation
-    if geometry_kwargs:
-        viewport.partDisplay.geometryOptions.setValues(**geometry_kwargs)
-
-    mesh_kwargs = {}
-    if meshTechnique is not None:
-        mesh_kwargs['meshTechnique'] = meshTechnique
-    if mesh_kwargs:
-        viewport.partDisplay.meshOptions.setValues(**mesh_kwargs)
+    abq_view.configure_part_display(
+        sectionAssignments=sectionAssignments,
+        engineeringFeatures=engineeringFeatures,
+        mesh=mesh,
+        referenceRepresentation=referenceRepresentation,
+        meshTechnique=meshTechnique,
+    )
 
 
 def _configure_assembly_display(mesh=None, optimizationTasks=None,
                                 geometricRestrictions=None,
                                 stopConditions=None, meshTechnique=None):
     """Apply assembly-display settings only when a viewport exists."""
-    viewport = _viewport_or_none()
-    if viewport is None:
-        return
-
-    kwargs = {}
-    if mesh is not None:
-        kwargs['mesh'] = mesh
-    if optimizationTasks is not None:
-        kwargs['optimizationTasks'] = optimizationTasks
-    if geometricRestrictions is not None:
-        kwargs['geometricRestrictions'] = geometricRestrictions
-    if stopConditions is not None:
-        kwargs['stopConditions'] = stopConditions
-    if kwargs:
-        viewport.assemblyDisplay.setValues(**kwargs)
-
-    mesh_kwargs = {}
-    if meshTechnique is not None:
-        mesh_kwargs['meshTechnique'] = meshTechnique
-    if mesh_kwargs:
-        viewport.assemblyDisplay.meshOptions.setValues(**mesh_kwargs)
+    abq_view.configure_assembly_display(
+        mesh=mesh,
+        optimizationTasks=optimizationTasks,
+        geometricRestrictions=geometricRestrictions,
+        stopConditions=stopConditions,
+        meshTechnique=meshTechnique,
+    )
 
 def create3DsphericV5(model_name , fiber_flag,vf_f,interface_flag,t_interface,fiber_matname,matrix_matname,interface_matname,mesh_size,elem_type):
 

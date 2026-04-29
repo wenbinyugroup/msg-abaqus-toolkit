@@ -12,6 +12,7 @@ from abaqusConstants import *
 from utils.utilities import *
 from main import utilities_abq as uab
 from textRepr import *
+from utils import abq_view
 from utils.UcheckDehoVisual import *
 import os.path
 
@@ -469,46 +470,20 @@ def visualization(vabs_input):
     odb = openOdb(odb_file_name)
     
     # Customize the viewport
-    da = session.drawingArea
-    da_width = da.width
-    da_height = da.height
-    da_origin = da.origin
-    
-    vp1 = session.viewports[session.currentViewportName]
-    vp1.setValues(origin = da_origin, width = da_width / 2.0, height = da_height)
-    da_origin = (da_origin[0] + da_width / 2.0, da_origin[1])
+    vp1, vp2 = abq_view.split_viewport_left_right()
     uab.setViewYZ(vp=vp1, nsg=2, obj=odb)
-    vp1.odbDisplay.setPrimaryVariable(variableLabel = 'EN', 
-                                      outputPosition = ELEMENT_NODAL, 
-                                      refinement = (COMPONENT, 'EN11'))
-    vp1.restore()
-    
-    font_family = 'consolas'
-    font_style  = 'medium'
-    font_size   = 140
-    view_font = '-*-' + font_family + '-' + font_style + '-r-normal-*-*-' + str(font_size) + '-*-*-m-*-*-*'
-    vp1.viewportAnnotationOptions.setValues(
-        triadFont = view_font, 
-        legendFont = view_font, 
-        titleFont = view_font, 
-        stateFont = view_font, 
-        legendMinMax = ON, 
-        legendDecimalPlaces = 6, 
-        legendBackgroundStyle = TRANSPARENT)
-    vp1.odbDisplay.display.setValues(plotState = CONTOURS_ON_DEF)
-    vp1.odbDisplay.commonOptions.setValues(visibleEdges=FEATURE)
-    
-    vp2 = session.Viewport(name = 'Viewport: 2', 
-                           origin = da_origin, width = da_width / 2.0, height = da_height)
+    abq_view.configure_odb_contour_display(
+        vp=vp1, variable_label='EN', component='EN11',
+        restore=True, visible_edges=FEATURE
+    )
+    abq_view.configure_viewport_annotations(vp=vp1)
     uab.setViewYZ(vp=vp2, nsg=2, obj=odb)
-    vp2.odbDisplay.setPrimaryVariable(variableLabel = 'SN', 
-                                     outputPosition = ELEMENT_NODAL, 
-                                     refinement = (COMPONENT, 'SN11'))
+    abq_view.configure_odb_contour_display(
+        vp=vp2, variable_label='SN', component='SN11'
+    )
 
-    vp1.makeCurrent()
-                                     
-    session.linkedViewportCommands.setValues(linkViewports=True)
-    session.linkedViewportCommands.setValues(fieldOutput=False)
+    abq_view.make_current(vp=vp1)
+    abq_view.set_linked_viewports(link_viewports=True, field_output=False)
 
     return 1
 

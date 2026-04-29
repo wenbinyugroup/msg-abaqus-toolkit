@@ -9,6 +9,7 @@ from mesh import *
 from job import *
 from utils.utilities import *
 from main import utilities_abq as uab
+from utils import abq_view
 import customKernel
 import sys
 import time
@@ -1514,9 +1515,9 @@ def createAirfoil(project_name, control_file):
     
             p = model.parts[pa_name]
             vp = uab.setViewYZ(nsg=2, obj=p, clr='Section')
-            if vp is not None:
-                vp.partDisplay.setValues(mesh = ON)
-                vp.partDisplay.meshOptions.setValues(meshTechnique = ON)
+            abq_view.configure_part_display(
+                vp=vp, mesh=ON, meshTechnique=ON
+            )
         
         mdb.saveAs(pathName = cae_name)
         

@@ -15,25 +15,17 @@ from caeModules import *
 from textRepr import *
 import regionToolset
 
-from main import utilities_abq as uab
+from utils import abq_view
 
 
 def _set_displayed_object_if_possible(displayed_object):
     """Update the active viewport when running with a GUI."""
-    try:
-        session.viewports[session.currentViewportName].setValues(
-            displayedObject=displayed_object
-        )
-    except Exception:
-        pass
+    abq_view.set_displayed_object(displayed_object)
 
 
 def _set_view_yz_if_possible(part):
     """Set the standard SG YZ view when a viewport exists."""
-    try:
-        uab.setViewYZ(nsg=2, obj=part, clr='Material')
-    except Exception:
-        pass
+    abq_view.set_sg_view(nsg=2, obj=part, clr='Material')
 
 def createHexInterfaceV5(model_name, fiber_flag, vf_f, interface_flag, 
                          t_interface, fiber_matname, matrix_matname, 

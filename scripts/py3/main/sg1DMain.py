@@ -12,6 +12,7 @@ from math import *
 #from yZview import *
 from utils.utilities import *
 from main import utilities_abq as uab
+from utils import abq_view as abv
 import regionToolset
 import os
 
@@ -49,7 +50,7 @@ def create1DSG(method,
 
 def fastGenerate1D(layup, thickness, model_name, material_name, offset_ratio, element_type):
     
-    cv = session.viewports[session.currentViewportName]
+    cv = abv.current_viewport()
     part_name = 'Laminate'
     partsobj = mdb.models[model_name].parts
     set_name ='Set_layup'
@@ -146,7 +147,7 @@ def fastGenerate1D(layup, thickness, model_name, material_name, offset_ratio, el
     
     g, v, d, c = s.geometry, s.vertices, s.dimensions, s.constraints
     s.setPrimaryObject(option=STANDALONE)
-    cv.view.setValues(session.views['Left'])
+    abv.set_named_view('Left', vp=cv)
     
     p = mdb.models[model_name].parts[part_name]
     p.projectReferencesOntoSketch(sketch=s, filter=COPLANAR_EDGES)
@@ -162,7 +163,7 @@ def fastGenerate1D(layup, thickness, model_name, material_name, offset_ratio, el
     e1, d2 = p.edges, p.datums
     p.Wire(sketchPlane=d2[datumPlaneYZ_id], sketchUpEdge=d2[datumAxisZ_id], sketchPlaneSide=SIDE1, sketchOrientation=RIGHT, sketch=s)
     s.unsetPrimaryObject()
-    cv.setValues(displayedObject=p)
+    abv.set_displayed_object(p, vp=cv)
     del mdb.models[model_name].sketches['__profile__']    
     
     # mesh
@@ -210,13 +211,13 @@ def fastGenerate1D(layup, thickness, model_name, material_name, offset_ratio, el
 
 def abaLayupGenerate(model_name_abq, part_name,layup_abq, element_type):
 
-    cv = session.viewports[session.currentViewportName]
+    cv = abv.current_viewport()
     
     model_name = model_name_abq
 
     model = mdb.models[model_name]
     part  = model.parts[part_name]
-    cv.setValues(displayedObject=part)
+    abv.set_displayed_object(part, vp=cv)
     
     set_name = 'Set_layup'
     
@@ -315,7 +316,7 @@ def abaSection1D(model_name = '', part_name = '', section_name = '', offset_rati
 
     model = mdb.models[model_name]
     set_name='Set_layup'
-    cv = session.viewports[session.currentViewportName]
+    cv = abv.current_viewport()
     
     if element_type=='five-noded':
         abaEle_edge=4
@@ -378,7 +379,7 @@ def abaSection1D(model_name = '', part_name = '', section_name = '', offset_rati
     
     g, v, d, c = s.geometry, s.vertices, s.dimensions, s.constraints
     s.setPrimaryObject(option=STANDALONE)
-    cv.view.setValues(session.views['Left'])
+    abv.set_named_view('Left', vp=cv)
     
     p = mdb.models[model_name].parts[part_name]
     p.projectReferencesOntoSketch(sketch=s, filter=COPLANAR_EDGES)
@@ -389,7 +390,7 @@ def abaSection1D(model_name = '', part_name = '', section_name = '', offset_rati
     e1, d2 = p.edges, p.datums
     p.Wire(sketchPlane=d2[datumPlaneYZ_id], sketchUpEdge=d2[datumAxisZ_id], sketchPlaneSide=SIDE1, sketchOrientation=RIGHT, sketch=s)
     s.unsetPrimaryObject()
-    cv.setValues(displayedObject=p)
+    abv.set_displayed_object(p, vp=cv)
     del mdb.models[model_name].sketches['__profile__']    
     
     # mesh
@@ -441,7 +442,7 @@ def fromInputfile1D(file_layup_input, model_name, element_type):
     model = mdb.models[model_name]
     mat_abq = list(model.materials.keys())
     set_name = 'Set_layup'
-    cv = session.viewports[session.currentViewportName]
+    cv = abv.current_viewport()
     
     layup_input = file_layup_input.replace('\\','/')
     temp = layup_input.rsplit('/')
@@ -548,7 +549,7 @@ def fromInputfile1D(file_layup_input, model_name, element_type):
     
     g, v, d, c = s.geometry, s.vertices, s.dimensions, s.constraints
     s.setPrimaryObject(option=STANDALONE)
-    cv.view.setValues(session.views['Left'])
+    abv.set_named_view('Left', vp=cv)
     
     p = mdb.models[model_name].parts[part_name]
     p.projectReferencesOntoSketch(sketch=s, filter=COPLANAR_EDGES)
@@ -559,7 +560,7 @@ def fromInputfile1D(file_layup_input, model_name, element_type):
     e1, d2 = p.edges, p.datums
     p.Wire(sketchPlane=d2[datumPlaneYZ_id], sketchUpEdge=d2[datumAxisZ_id], sketchPlaneSide=SIDE1, sketchOrientation=RIGHT, sketch=s)
     s.unsetPrimaryObject()
-    cv.setValues(displayedObject=p)
+    abv.set_displayed_object(p, vp=cv)
     del mdb.models[model_name].sketches['__profile__']    
     
     # mesh
@@ -597,6 +598,7 @@ def fromInputfile1D(file_layup_input, model_name, element_type):
     uab.setViewYZ(nsg=1, obj=p)
 
     return 1
+
 
 
 
