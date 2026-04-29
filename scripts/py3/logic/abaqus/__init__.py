@@ -1,1 +1,0 @@
-"""Abaqus-dependent business logic."""

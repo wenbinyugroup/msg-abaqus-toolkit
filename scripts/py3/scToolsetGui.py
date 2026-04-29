@@ -160,7 +160,7 @@ class SCToolsetGui(AFXToolsetGui):
 
     def getKernelInitializationCommand(self):
         
-        h = 'from logic.abaqus import'
+        h = 'from main import'
         h += ' userDataSG, scHomoMain, scMacroMat, scLocalMain'
         h += ', scVisualMain, workplaneMain, layupsMain'
         h += ', sg1DMain, sg2DV5Main, sg2DLaminateMain'
@@ -177,4 +177,5 @@ class SCToolsetGui(AFXToolsetGui):
         
         return 1
         
+
 
