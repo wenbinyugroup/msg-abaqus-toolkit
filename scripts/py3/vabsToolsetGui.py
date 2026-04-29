@@ -7,21 +7,21 @@
 
 from abaqusGui import *
 from sessionGui import CanvasToolsetGui
-from workplaneV5Form import WorkplaneV5Form
-from layupsForm import LayupsForm
-from sG1D_v3Form import SG1D_v3Form
-from sG2DV5Form import SG2DV5Form
-from sg2DLaminateForm import SG2DLaminateForm
-from sg2DLaminateEraseForm import SG2DLaminateEraseForm
-from sg2DReadFileForm import SG2DReadFileForm
-from node9Form import Node9Form
-from sG3DV5Form import SG3DV5Form
-from scHomoForm import HomoForm
-from scMacroForm import MacroForm
-from scLocalForm import LocalForm
-# from scVisualForm import VisualForm
-from vabsForm import VabsForm
-from vabsVisualForm import VisualForm
+from forms.workplaneV5Form import WorkplaneV5Form
+from forms.layupsForm import LayupsForm
+from forms.sG1D_v3Form import SG1D_v3Form
+from forms.sG2DV5Form import SG2DV5Form
+from forms.sg2DLaminateForm import SG2DLaminateForm
+from forms.sg2DLaminateEraseForm import SG2DLaminateEraseForm
+from forms.sg2DReadFileForm import SG2DReadFileForm
+from forms.node9Form import Node9Form
+from forms.sG3DV5Form import SG3DV5Form
+from forms.scHomoForm import HomoForm
+from forms.scMacroForm import MacroForm
+from forms.scLocalForm import LocalForm
+# from forms.scVisualForm import VisualForm
+from forms.vabsForm import VabsForm
+from forms.vabsVisualForm import VisualForm
 import os
 
 thisPath = os.path.abspath(__file__)
@@ -163,7 +163,7 @@ class VABSToolsetGui(AFXToolsetGui):
 
     def getKernelInitializationCommand(self):
         
-        h = 'import'
+        h = 'from logic.abaqus import'
         h += ' userDataSG, scHomoMain, scMacroMat, scLocalMain'
         h += ', scVisualMain, workplaneMain, layupsMain'
         h += ', sg1DMain, sg2DV5Main, sg2DLaminateMain'
@@ -180,3 +180,4 @@ class VABSToolsetGui(AFXToolsetGui):
         
         return 1
         
+
