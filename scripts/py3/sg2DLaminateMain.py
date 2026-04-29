@@ -233,7 +233,7 @@ def assignLayups(baseline, area, model_name, section_name, opposite=0, nsp=20):
                     curve1=g[tline_id], point1=g[tline_id].pointOn,
                     curve2=sbd1, point2=sbd1.pointOn
                 )
-            except:
+            except Exception:
                 pass
 
             try:
@@ -243,7 +243,7 @@ def assignLayups(baseline, area, model_name, section_name, opposite=0, nsp=20):
                     curve1=g[tline_id], point1=g[tline_id].pointOn,
                     curve2=sbd2, point2=sbd2.pointOn
                 )
-            except:
+            except Exception:
                 pass
 
             g = s.geometry
@@ -273,7 +273,7 @@ def assignLayups(baseline, area, model_name, section_name, opposite=0, nsp=20):
                         curve1=g[tline_id], point1=g[tline_id].pointOn,
                         curve2=sbd1, point2=sbd1.pointOn
                     )
-                except:
+                except Exception:
                     pass
 #                print s.geometry.keys()
                 try:
@@ -283,7 +283,7 @@ def assignLayups(baseline, area, model_name, section_name, opposite=0, nsp=20):
                         curve1=g[tline_id], point1=g[tline_id].pointOn,
                         curve2=sbd2, point2=sbd2.pointOn
                     )
-                except:
+                except Exception:
                     pass
 #                print s.geometry.keys()
                 g = s.geometry
@@ -292,6 +292,8 @@ def assignLayups(baseline, area, model_name, section_name, opposite=0, nsp=20):
 
     elif ctype == 'SPLINE' or ctype == 'ARC' or ctype == 'CIRCLE' or ctype == 'ELLIPSE':
 #        nsp = 100  # number of sample points
+        if nsp <= 0:
+            raise ValueError('Number of sampling points must be positive.')
         spline_constrain = True
         sbl_pts = []
         oob_pts = []
@@ -310,7 +312,7 @@ def assignLayups(baseline, area, model_name, section_name, opposite=0, nsp=20):
         oob_pt2 = oob_vs[1].coords
         sbl_pts.append(sbl_pt1)
         oob_pts.append(oob_pt1)
-        for i in range(1, 100, 100/nsp):
+        for i in range(1, 100, 100 // nsp):
             sbl_pt = sbl.getPointAtDistance(point=sbl_pt1, distance=i, percentage=True)
             oob_pt = oob.getPointAtDistance(point=oob_pt1, distance=i, percentage=True)
             sbl_pts.append(sbl_pt)
@@ -425,7 +427,7 @@ def assignLayups(baseline, area, model_name, section_name, opposite=0, nsp=20):
                 elif dp < 0.0:
 #                    print g.keys()[-1]
                     s.delete(objectList = (g[list(g.keys())[-1]],))
-            except:
+            except Exception:
                 pass
             
             try:
@@ -440,7 +442,7 @@ def assignLayups(baseline, area, model_name, section_name, opposite=0, nsp=20):
                 elif dp < 0.0:
 #                    print g.keys()[-2]
                     s.delete(objectList = (g[list(g.keys())[-2]],))
-            except:
+            except Exception:
                 pass
             
             g = s.geometry
@@ -479,7 +481,7 @@ def assignLayups(baseline, area, model_name, section_name, opposite=0, nsp=20):
                     ledge_id = list(g.keys())[-1]
                     temp.remove(temp[-1])
                     temp.append(ledge_id)
-                except:
+                except Exception:
                     g = s.geometry
                     tline_id = list(g.keys())[-1]
                     tline_vs = g[tline_id].getVertices()
@@ -503,7 +505,7 @@ def assignLayups(baseline, area, model_name, section_name, opposite=0, nsp=20):
                         s.breakCurve(curve1 = g[sline_id], point1 = g[sline_id].pointOn, 
                                      curve2 = sbd0, point2 = sbd0.pointOn)
                         temp.append(list(s.geometry.keys())[-2])
-                    except:
+                    except Exception:
                         pass
                     g = s.geometry
                     sline_id = list(g.keys())[-1]
@@ -524,7 +526,7 @@ def assignLayups(baseline, area, model_name, section_name, opposite=0, nsp=20):
                     ledge_id = list(g.keys())[-1]
 #                    temp.remove(temp[-1])
                     temp.append(ledge_id)
-                except:
+                except Exception:
                     g = s.geometry
                     tline_id = list(g.keys())[-1]
                     tline_vs = g[tline_id].getVertices()
@@ -548,7 +550,7 @@ def assignLayups(baseline, area, model_name, section_name, opposite=0, nsp=20):
                         s.breakCurve(curve1 = g[sline_id], point1 = g[sline_id].pointOn, 
                                      curve2 = sbd1, point2 = sbd1.pointOn)
                         temp.append(list(s.geometry.keys())[-2])
-                    except:
+                    except Exception:
                         pass
                     g = s.geometry
                     sline_id = list(g.keys())[-1]

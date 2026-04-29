@@ -17,7 +17,7 @@ def checkDehoVisual(sc_input_sc, flag):
     SCfileName=SCfileName[0]
     if flag[0]=='D' or flag[0]=='d' or  flag[0]=='V' or flag[0]=='v':
         cwd = os.getcwd()
-        destOdbname=cwd + '\\' + SCfileName + '.odb'
+        destOdbname = os.path.join(cwd, SCfileName + '.odb')
         if os.path.exists(destOdbname):
             print('The odb file %s has existed! The original %s.odb will be overwritten.' % (destOdbname,destOdbname)) 
             
@@ -27,10 +27,10 @@ def checkDehoVisual(sc_input_sc, flag):
     
     cwd = os.getcwd()
     
-    isfilesc=os.path.exists(cwd + '\\' + sc_input_sc)
+    isfilesc = os.path.exists(os.path.join(cwd, sc_input_sc))
     
-    isfilek=os.path.exists(cwd + '\\' + sc_input_sc + '.k')
-    isfileopt=os.path.exists(cwd + '\\' + sc_input_sc + '.opt')
+    isfilek = os.path.exists(os.path.join(cwd, sc_input_sc + '.k'))
+    isfileopt = os.path.exists(os.path.join(cwd, sc_input_sc + '.opt'))
     
     if flag[0]=='M' or flag[0]=='m':
         if isfilek==True :

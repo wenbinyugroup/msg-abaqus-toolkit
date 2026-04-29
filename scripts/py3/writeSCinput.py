@@ -62,6 +62,7 @@ def writeSCInput(
     # ================================================================
 
     with codecs.open(sc_inp, encoding='utf-8', mode='w') as fout:
+        eid_remaining = list(eid_all)
         nnode = len(n_coord)
         nelem = len(e_connt_2d) + len(e_connt_3d)
         nmate = len(list(materials.keys()))
@@ -116,8 +117,8 @@ def writeSCInput(
         if distr_all and len(distr_all) > 0:
             for distr in distr_all:
                 eid = int(distr[0])
-                if eid in eid_all:
-                    eid_all.remove(eid)
+                if eid in eid_remaining:
+                    eid_remaining.remove(eid)
                 fout.write('{0:10d}'.format(eid))
                 writeFormat(fout, 'E'*9, distr[1:])
             fout.write('\n')

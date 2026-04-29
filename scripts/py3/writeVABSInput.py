@@ -63,6 +63,7 @@ def writeVABSInput(
     # ================================================================
 
     with codecs.open(vabs_inp, encoding='utf-8', mode='w') as fout:
+        eid_remaining = list(eid_all)
         nnode = len(n_coord)
         nelem = len(e_connt_2d)
         nmate = len(list(materials.keys()))
@@ -96,8 +97,8 @@ def writeVABSInput(
 
         # ----- Write nodal coordinates ------------------------------
         for n in n_coord:
-            # print n[[0, 2, 3]]
-            writeFormat(fout, 'dEE', n[[0, 2, 3]])
+            # VABS uses node id with y/z coordinates for 2D cross-sections.
+            writeFormat(fout, 'dEE', [n[0], n[2], n[3]])
         fout.write('\n')
 
         # ----- Write element connectivities -------------------------
@@ -110,15 +111,15 @@ def writeVABSInput(
         for distr in distr_all:
             eid = int(distr[0])
             lid = eid_lid[eid]
-            eid_all.remove(eid)
+            eid_remaining.remove(eid)
             t1 = math.degrees(math.atan2(distr[6], distr[5]))
             if t1 < 0:
                 t1 += 360.0
             if t1 == 360.0:
                 t1 = 0.0
             writeFormat(fout, 'ddE', [eid, lid, t1])
-        if len(eid_all) > 0:
-            for eid in eid_all:
+        if len(eid_remaining) > 0:
+            for eid in eid_remaining:
                 lid = eid_lid[eid]
                 writeFormat(fout, 'ddE', [eid, lid, 0.0])
         fout.write('\n')

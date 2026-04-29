@@ -20,10 +20,10 @@ def determineNSG(model_name, part_name):
     if meshStats.numHexElems > 0 or meshStats.numTetBoundaryElems > 0 or meshStats.numTetElems > 0 or meshStats.numWedgeElems > 0:
         eflag_3D = 1
 #        print '3D nSG'
-    elif meshStats.numTriElems > 0 or meshStats.numQuadElems> 0:
+    if meshStats.numTriElems > 0 or meshStats.numQuadElems > 0:
         eflag_2D = 1
 #        print '2D nSG'
-    elif meshStats.numLineElems > 0:
+    if meshStats.numLineElems > 0:
         eflag_1D = 1
 #        print '1D nSG'
     t = eflag_3D + eflag_2D + eflag_1D

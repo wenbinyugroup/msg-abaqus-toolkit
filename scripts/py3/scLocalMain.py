@@ -5,6 +5,7 @@ from abaqus import *
 from abaqusConstants import *
 from scVisualMain import *
 from utilities import *
+import subprocess
 import os
 import time
 from customKernel import CommandRegister, RegisteredList , RegisteredTuple#, RepositorySupport
@@ -105,7 +106,7 @@ def localization(
     sgDehomoData = mdb.customData.SgDehomoData(name=sgDehomoData_name)
     sgDehomoData.createSgDehomoData(
         debug, sgmodel_source, sg_name, sc_input, analysis, macro_model,
-        macro_displacement=tuple(v), macro_roatation=tuple(c),
+        macro_displacement=tuple(v), macro_rotation=tuple(c),
         beam_strain=tuple(be), shell_strain=tuple(se), solid_strain=tuple(e), tm=tm,
         beam_model=beam_model)
     if info==1:
@@ -178,19 +179,23 @@ def localization(
             writeFormat(fout, 'E', tm)
 
     #execute dehomogenization
-    try:
-        if ap_flag==False:
-            os.system('Swiftcomp ' + SCfileName + '.sc '+macro_model_dimension+' L')
-        else:
-            os.system('Swiftcomp ' + SCfileName + '.sc '+macro_model_dimension+' LA')
-        cwd = os.getcwd()
-#        print cwd
-    except:
-        return
+    cwd = os.getcwd()
+    cmd = ['Swiftcomp', SCfileName + '.sc', macro_model_dimension]
+    if ap_flag==False:
+        cmd.append('L')
+    else:
+        cmd.append('LA')
+    result = subprocess.run(cmd, timeout=300, check=False)
+    if result.returncode != 0:
+        raise RuntimeError('SwiftComp exited with code %d' % result.returncode)
 
 
     #check and wait
-    while not os.path.exists(cwd + '\\' + SCfileName + '.sc' + '.u'):
+    sc_output = os.path.join(cwd, SCfileName + '.sc.u')
+    deadline = time.time() + 300
+    while not os.path.exists(sc_output):
+        if time.time() > deadline:
+            raise RuntimeError('SwiftComp did not produce output after 300 s')
         time.sleep(1)
     
     endTime = time.perf_counter()

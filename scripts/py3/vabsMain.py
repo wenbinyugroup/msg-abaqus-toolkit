@@ -2,7 +2,7 @@ from __future__ import print_function
 from abaqus import *
 from math import *
 from datetime import *
-from subprocess import call
+import subprocess
 from utilities import *
 from createVABSInputMain import *
 import os.path
@@ -17,7 +17,7 @@ def VABSMain(
     vlasov_flag='', curve_flag='', k='', oblique_flag='', cos='',
     model_recover='', vabs_rec_name='', vabs_inp_name2='',
     u='', c='', sf='', sm='', df='', dm='',
-    gamma='', kappa='', kappa_p=''
+    gamma='', kappa='', kappa_p='', trans_flag=None
 ):
     
     st = datetime.now()
@@ -31,7 +31,7 @@ def VABSMain(
         vabs_input = createVABSInputMain(
             abq_inp_name, vabs_inp_name,
             timoshenko_flag, thermal_flag, trapeze_flag, vlasov_flag,
-            curve_flag, k, oblique_flag, cos
+            curve_flag, k, oblique_flag, cos, trans_flag=trans_flag
         )
     elif recover_flag == 2:
         vabs_input = getRecoverInput(
@@ -42,17 +42,16 @@ def VABSMain(
     print(vabs_input)
 
     if not gen_inp_only:
-        try:
-            print('Running VABS...')
-            vabsTimeStart = time.perf_counter()
-            os.system('VABSIII ' + vabs_input)
-            vabsTimeEnd = time.perf_counter()
-            vabsTime = vabsTimeEnd - vabsTimeStart
-            print('VABS TIME: ' + str(vabsTime))
-        except:
-            raise WindowsError(
-                'Unexpected error happened. Please check the Command line window for more information.'
-            )
+        print('Running VABS...')
+        vabsTimeStart = time.perf_counter()
+        result = subprocess.run(
+            ['VABSIII', vabs_input], timeout=300, check=False
+        )
+        if result.returncode != 0:
+            raise RuntimeError('VABS exited with code %d' % result.returncode)
+        vabsTimeEnd = time.perf_counter()
+        vabsTime = vabsTimeEnd - vabsTimeStart
+        print('VABS TIME: ' + str(vabsTime))
 
     return 1
 

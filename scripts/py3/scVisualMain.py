@@ -202,7 +202,7 @@ def visualization(macro_model, ap_flag, sc_input):
                     node_label.append(int(line[0]))
                     u_data.append((float(line[1]), float(line[2]), float(line[3])))
         print('--> Find .u file.')
-    except:
+    except Exception:
         print('--! Cannot find .u file.')
                 
     #print len(u_data)
@@ -226,7 +226,7 @@ def visualization(macro_model, ap_flag, sc_input):
                     sg_strain.append(tuple(temp_e))
                     sg_stress.append(tuple(temp_s))
         print('--> Find .sg file.')
-    except:
+    except Exception:
         print('--! Cannot find .sg file.')
     
     # --------------------------------------------
@@ -248,7 +248,7 @@ def visualization(macro_model, ap_flag, sc_input):
                     sn_strain.append(tuple(temp_e))
                     sn_stress.append(tuple(temp_s))
         print('--> Find .sn file.')
-    except:
+    except Exception:
         print('--! Cannot find .sn file.')
         
     # ------------------------------------------------------
@@ -270,7 +270,7 @@ def visualization(macro_model, ap_flag, sc_input):
                     sgm_strain.append(tuple(temp_e))
                     sgm_stress.append(tuple(temp_s))
         print('--> Find .sgm file.')
-    except:
+    except Exception:
         print('--! Cannot find .sgm file.')
     
     # --------------------------------------------
@@ -292,7 +292,7 @@ def visualization(macro_model, ap_flag, sc_input):
                     snm_strain.append(tuple(temp_e))
                     snm_stress.append(tuple(temp_s))
         print('--> Find .snm file.')
-    except:
+    except Exception:
         print('--! Cannot find .snm file.')
     
     print('    Done.')
@@ -380,7 +380,7 @@ def visualization(macro_model, ap_flag, sc_input):
             try:
                 odb = openOdb(odb_file_name)
                 odb.close()
-            except:
+            except Exception:
                 pass
 
             os.remove(odb_file_name)

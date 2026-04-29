@@ -227,7 +227,7 @@ class Create_layupsDBFileHandler(FXObject):
         self.form = form
         self.patterns = patterns
         self.patternTgt = AFXIntTarget(0)
-        exec('self.fileNameKw = form.%sKw' % keyword)
+        self.fileNameKw = getattr(form, keyword + 'Kw')
         self.readOnlyKw = AFXBoolKeyword(None, 'readOnly', AFXBoolKeyword.TRUE_FALSE)
         FXObject.__init__(self)
         FXMAPFUNC(self, SEL_COMMAND, AFXMode.ID_ACTIVATE, Create_layupsDBFileHandler.activate)

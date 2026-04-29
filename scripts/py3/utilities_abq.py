@@ -31,6 +31,8 @@ def trimIntersectCurves(sketch, curve1_id, keep1, curve2_id, keep2, near_pt):
     elif keep1 == 2:
         curve1_id_new = id4
         trim = (g[id3],)
+    else:
+        raise ValueError("keep1 must be 1 or 2, got %r" % keep1)
     sketch.breakCurve(curve1=g[curve2_id], point1=near_pt,
                       curve2=g[id3], point2=near_pt)
     g = sketch.geometry
@@ -43,6 +45,8 @@ def trimIntersectCurves(sketch, curve1_id, keep1, curve2_id, keep2, near_pt):
     elif keep2 == 2:
         curve2_id_new = id6
         trim += (g[id5],)
+    else:
+        raise ValueError("keep2 must be 1 or 2, got %r" % keep2)
     sketch.delete(objectList=trim)
     
     return [curve1_id_new, curve2_id_new]

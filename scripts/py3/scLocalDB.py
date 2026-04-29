@@ -24,7 +24,7 @@ def _resolve_sc_for_sg(sg, sg_name):
         p2 = os.path.join(cwd, sg_name + '.sc')
         if os.path.isfile(p2):
             return os.path.abspath(p2)
-    except:
+    except Exception:
         pass
     return None
 
@@ -36,7 +36,7 @@ def _valid_cae_sg_names():
             if _resolve_sc_for_sg(sg, name):
                 names.append(name)
         return sorted(names)
-    except:
+    except Exception:
         return []
 # =========================================================================================
 
@@ -56,10 +56,10 @@ class LocalDB(AFXDataDialog):
         # Make the window resizable and big enough that OK/Cancel are visible
         try:
             self.setDecorations(self.getDecorations() | DECOR_RESIZE)
-        except: pass
+        except Exception: pass
         try:
             self.resize(max(self.getDefaultWidth(), 560), 760)
-        except: pass
+        except Exception: pass
 
         self.form = form
         colw = 100  # AFXTable column width
@@ -302,7 +302,7 @@ class LocalDB(AFXDataDialog):
             # clear and repopulate list
             try:
                 self.List_sg.clearItems()
-            except:
+            except Exception:
                 pass
             for nm in valid:
                 self.List_sg.appendItem(nm)
@@ -312,7 +312,7 @@ class LocalDB(AFXDataDialog):
                     self.form.sg_nameKw.setValue(valid[0])
             else:
                 self.form.sg_nameKw.setValue('')
-        except:
+        except Exception:
             pass
     # ----------------------------------------------------------------------
 
@@ -327,16 +327,16 @@ class LocalDB(AFXDataDialog):
         try:
             self.beamRow.recalc(); self.shellRow.recalc()
             self.layout(); self.update()
-        except: pass
+        except Exception: pass
 
     def _error(self, title, msg):
         try:
             showAFXErrorDialog(getAFXApp().getAFXMainWindow(), '%s\n\n%s' % (title, msg))
-        except:
+        except Exception:
             try:
                 AFXMessageDialog(getAFXApp().getAFXMainWindow(),
                                  self, AFXMessageDialog.ERROR, title, msg).create().showModal()
-            except:
+            except Exception:
                 print('[ERROR] %s: %s' % (title, msg))
 
     # Show an error only once per unique "key"
@@ -352,7 +352,7 @@ class LocalDB(AFXDataDialog):
         # 0) fetch SG
         try:
             sg = mdb.customData.sgs[sg_name]
-        except:
+        except Exception:
             self._error_once('CAE model',
                              'Selected SG cannot be found in mdb.customData.sgs.',
                              key=('missing_sg', sg_name))
@@ -374,7 +374,7 @@ class LocalDB(AFXDataDialog):
         try:
             dim = (getattr(sg, 'macro_model_dimension', '') or '').strip()
             macro = int(dim.strip('D')) if dim else None
-        except:
+        except Exception:
             macro = None
 
         # 3) prefer numeric specific_model (0/1). fall back to strings.
@@ -452,7 +452,7 @@ class LocalDB(AFXDataDialog):
         # detect CAE/SC switching; refresh list when CAE is selected
         try:
             current_source = self.form.sgmodel_sourceKw.getValue()
-        except:
+        except Exception:
             current_source = None
 
         if current_source != self._last_source:
@@ -469,7 +469,7 @@ class LocalDB(AFXDataDialog):
         # normalize measure
         try:
             measure = int(self.form.load_measureKw.getValue())
-        except:
+        except Exception:
             measure = 1 if str(self.form.load_measureKw.getValue()).lower().startswith('strain') else 0
         is_strain = (measure == 1)
 
@@ -506,7 +506,7 @@ class LocalDB(AFXDataDialog):
 
             try:
                 analysis = int(getattr(mdb.customData.sgs[sg_name], 'analysis', 0))
-            except:
+            except Exception:
                 analysis = 0
             if analysis in (1, 4, 6):
                 self.tempdiff.enable()
@@ -516,7 +516,7 @@ class LocalDB(AFXDataDialog):
             try:
                 self.swt_1d.recalc(); self.swt_2d.recalc(); self.swt_3d.recalc()
                 self.swt_dim.recalc(); self.layout(); self.update()
-            except: pass
+            except Exception: pass
 
         else:
             # -------- SwiftComp mode --------
@@ -553,7 +553,7 @@ class LocalDB(AFXDataDialog):
             try:
                 self.swt_1d.layout(); self.swt_2d.layout(); self.swt_3d.layout()
                 self.swt_dim.layout(); self.layout(); self.update()
-            except: pass
+            except Exception: pass
 
 ###########################################################################
 # File selector helper
@@ -564,7 +564,7 @@ class LocalDBFileHandler(FXObject):
         self.form      = form
         self.patterns  = patterns
         self.patternTgt= AFXIntTarget(0)
-        exec('self.fileNameKw = form.%sKw' % keyword)
+        self.fileNameKw = getattr(form, keyword + 'Kw')
         self.readOnlyKw= AFXBoolKeyword(None, 'readOnly', AFXBoolKeyword.TRUE_FALSE)
         FXObject.__init__(self)
         FXMAPFUNC(self, SEL_COMMAND, AFXMode.ID_ACTIVATE, LocalDBFileHandler.activate)

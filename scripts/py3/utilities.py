@@ -16,12 +16,14 @@ def writeFormat(file, format, content, delimiter=''):
     for i, t in enumerate(format):
         if t == 'd':
             str_fmt += '{0[' + str(i) + ']:10d}'
+            if delimiter != '':
+                str_fmt += delimiter
         elif t == 'e' or t == 'E':
             str_fmt += '{0[' + str(i) + ']:16.6' + t + '}'
-        if delimiter != '':
-            str_fmt += delimiter
+            if delimiter != '':
+                str_fmt += delimiter
     if delimiter != '':
-        str_fmt = str_fmt.rstrip(delimiter)
+        str_fmt = str_fmt[:-len(delimiter)]
     str_fmt += '\n'
     #print str_fmt
     file.write(str_fmt.format(content))
@@ -62,11 +64,6 @@ def eleFormat(format1, format2):
     for i, t in enumerate(format2):
         if (t == 'd' or t == 'D'):
             eleFormat += '{0[2][' + str(i) + ']:10d}'
-            
-        elif t == 'e' or t == 'E':
-            eleFormat += '{0[2][' + str(i) + ']::16.6' + t + '}'
-        elif t == 'f' or t == 'F':
-            strFormat += '{0[' + str(i) + ']:16.6' + t + '}'
     eleFormat += '\n'
 
     return eleFormat

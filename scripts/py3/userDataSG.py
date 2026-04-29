@@ -60,7 +60,7 @@ class SgDehomoData(CommandRegister):
         
     def createSgDehomoData(self, debug, sgmodel_source, sg_name, sc_input, 
                            analysis, macro_model, macro_displacement, 
-                           macro_roatation, beam_strain, shell_strain, 
+                           macro_rotation, beam_strain, shell_strain, 
                            solid_strain, tm=0.0,
                            load_measure=1,
                            beam_model="Euler",
@@ -73,7 +73,7 @@ class SgDehomoData(CommandRegister):
                 sg                         = mdb.customData.sgs[sg_name]
                 self.macro_model_dimension = sg.macro_model_dimension
                 self.analysis              = sg.analysis
-            except:
+            except Exception:
                 raise ValueError('Check and update the data in sg[\' %s \']' % sg_name)
                 
         elif sgmodel_source == 2:
@@ -83,8 +83,7 @@ class SgDehomoData(CommandRegister):
             if debug == 1:
                 print ('in userDataSG, initailly: sc_input= %s' % sc_input)
                 print ('in userDataSG, path= %s' % path)
-            temp_name   = sc_input.rsplit('\\',1)
-            temp_name   = temp_name[-1]
+            temp_name   = os.path.basename(sc_input)
             temp_name   = temp_name.split('.')
             sc_filename = temp_name[0]
             if debug == 1:
@@ -96,7 +95,7 @@ class SgDehomoData(CommandRegister):
             self.analysis              = analysis
             
         self.macro_displacement = macro_displacement # RegisteredTuple(macro_displacement)
-        self.macro_roatation    = macro_roatation    # RegisteredTuple(macro_roatation)
+        self.macro_rotation     = macro_rotation     # RegisteredTuple(macro_rotation)
         self.load_measure       = load_measure       # 0: stress, 1: strain
         macro_model_dimension   = self.macro_model_dimension
         if macro_model_dimension == '1D':

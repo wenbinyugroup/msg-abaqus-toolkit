@@ -73,11 +73,14 @@ def parseAbaqusInput(abq_inp_name):
     e_connt_2d3=e_connt_2d4=e_connt_2d6=e_connt_2d8=[]
     e_connt_3d4=e_connt_3d6=e_connt_3d8=e_connt_3d10=e_connt_3d15=e_connt_3d20=[]
     elsets_raw, distributions, orientations, sections = [], [], [], []
-    materials, densities, elastics = [], [], []
+    materials = []
+    densities = {}
+    elastics = {}
     mtr_name2id, lyt_name2id = {}, {}
     mid = lid = 0
     nsg = 3
     n_coord = []
+    current_material_name = None
 
     for kw in kws_obj:
         if kw.name == 'parameter':
@@ -99,6 +102,8 @@ def parseAbaqusInput(abq_inp_name):
             elif et in el_3d10_type:  rows = collect_elements_fixed_width(kw.data, widths['3d10']); e_connt_3d10 = e_connt_3d10 + rows
             elif et in el_3d15_type:  rows = collect_elements_fixed_width(kw.data, widths['3d15']); e_connt_3d15 = e_connt_3d15 + rows
             elif et in el_3d20_type:  rows = collect_elements_fixed_width(kw.data, widths['3d20']); e_connt_3d20 = e_connt_3d20 + rows
+            else:
+                print("WARNING: element type %s is not supported and will be skipped." % et)
 
         elif kw.name == 'elset':
             elsets_raw.append(kw)
@@ -116,10 +121,15 @@ def parseAbaqusInput(abq_inp_name):
             mname = kw.parameter['name']
             mtr_name2id[mname] = mid
             materials.append(kw)
+            current_material_name = str(mname).strip()
         elif kw.name == 'density':
-            densities.append(kw)
+            if not current_material_name:
+                raise ValueError("density block encountered before any material definition")
+            densities[current_material_name.upper()] = kw
         elif kw.name == 'elastic':
-            elastics.append(kw)
+            if not current_material_name:
+                raise ValueError("elastic block encountered before any material definition")
+            elastics[current_material_name.upper()] = kw
 
     e_connt_2d = {3:e_connt_2d3, 4:e_connt_2d4, 6:e_connt_2d6, 8:e_connt_2d8}
     e_connt_3d = {4:e_connt_3d4, 6:e_connt_3d6, 8:e_connt_3d8, 10:e_connt_3d10, 15:e_connt_3d15, 20:e_connt_3d20}

@@ -20,16 +20,22 @@ def _get_sc_dim_sub(sc_path):
         return ("3D","Solid")
     def _is_int(t):
         try: int(t); return True
-        except: return False
+        except Exception: return False
     toks=re.split(r'\s+', lines[0])
     if not toks or not _is_int(toks[0]) or int(toks[0]) not in (0,1,2,3):
         return ("3D","Solid")
     mflag=int(toks[0])
     def _count_reals(s):
-        try:
-            return len([x for x in re.split(r'\s+', s) if x and (x=='0' or x=='0.0' or float(x)==float(x))])
-        except:
-            return 0
+        count = 0
+        for token in re.split(r'\s+', s):
+            if not token:
+                continue
+            try:
+                float(token)
+                count += 1
+            except ValueError:
+                pass
+        return count
     n2=_count_reals(lines[1]) if len(lines)>1 else 0
     n3=_count_reals(lines[2]) if len(lines)>2 else 0
     if n2==3 and n3>=2:
@@ -49,7 +55,7 @@ def sgmodel_info(sgmodel_source, sg_name, sc_input,  analysis, macro_model, ap_f
         SCfileName  = sg_name
         scinput     = mdb.customData.sgs[sg_name].swiftcomp_filename
         currentpath = os.getcwd()
-        sc_input    = currentpath+'\\'+scinput
+        sc_input    = os.path.join(currentpath, scinput)
         
         if debug == 1:
             print('\n')
@@ -57,7 +63,7 @@ def sgmodel_info(sgmodel_source, sg_name, sc_input,  analysis, macro_model, ap_f
             print('\n')
             
     elif sgmodel_source == 2:
-        sc_input    = sc_input.replace('/','\\')
+        sc_input    = os.path.normpath(sc_input)
         scpath      = os.path.dirname(sc_input)
         currentpath = os.getcwd()
         if debug == 1:
@@ -67,8 +73,7 @@ def sgmodel_info(sgmodel_source, sg_name, sc_input,  analysis, macro_model, ap_f
             print('scpath = os.path.dirname(sc_input) : %s' % scpath)
             print('currentpath = os.getcwd() : %s' % currentpath)
             print('\n')
-        temp_name  = sc_input.rsplit('\\',1)
-        temp_name  = temp_name[-1]
+        temp_name  = os.path.basename(sc_input)
         temp_name  = temp_name.split('.')
         SCfileName = temp_name[0]
         if scpath != currentpath:

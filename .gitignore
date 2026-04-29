@@ -19,6 +19,7 @@
 .venv/
 doc/build/
 tests/
+local/
 
 # Windows image file caches
 Thumbs.db

@@ -14,11 +14,16 @@ def determineVolume(model_name, part_name, macro_model_dimension, nSG):
         nodeX = []
         nodeY = []
         nodeZ = []
+        n_coord = []
         for n in range(0, len(nodes)):
-            nodeX.append(nodes[n].coordinates[0])
-            nodeY.append(nodes[n].coordinates[1])
-            nodeZ.append(nodes[n].coordinates[2])
-        if max(nodeZ) == 0:
+            coords = nodes[n].coordinates
+            nodeX.append(coords[0])
+            nodeY.append(coords[1])
+            nodeZ.append(coords[2])
+            n_coord.append(coords)
+        if not n_coord:
+            raise ValueError('Please mesh the part!')
+        if all(c[0] == 0 and c[1] == 0 and c[2] == 0 for c in n_coord):
             raise ValueError('Please mesh the part!')
         LX = max(nodeX) - min(nodeX)
         LY = max(nodeY) - min(nodeY)
@@ -50,6 +55,8 @@ def determineVolume(model_name, part_name, macro_model_dimension, nSG):
             volume = 1
         elif nSG == 1:
             raise TypeError (' Wire model cannot be used for beam analysis!  ')
+    else:
+        raise ValueError('Unknown macro_model_dimension: %s' % macro_model_dimension)
     
     # WendTime = time.clock()
     # WTime = WendTime - WstartTime

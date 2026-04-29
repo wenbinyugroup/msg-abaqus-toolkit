@@ -66,6 +66,8 @@ def fastGenerate1D(layup, thickness, model_name, material_name, offset_ratio, el
     
     elif element_type=='two-noded':
         abaEle_edge=1
+    else:
+        raise ValueError('Unknown elem_type: %s' % element_type)
     
     #### get reduced string without '2s'  
     
@@ -228,6 +230,8 @@ def abaLayupGenerate(model_name_abq, part_name,layup_abq, element_type):
         abaEle_edge = 2
     elif element_type == 'two-noded':
         abaEle_edge = 1
+    else:
+        raise ValueError('Unknown elem_type: %s' % element_type)
     
     plies_sc = {}
     ply_id_sc = 0
@@ -311,7 +315,7 @@ def abaSection1D(model_name = '', part_name = '', section_name = '', offset_rati
 
     model = mdb.models[model_name]
     set_name='Set_layup'
-    cv = session.viewports['Viewport: 1']
+    cv = session.viewports[session.currentViewportName]
     
     if element_type=='five-noded':
         abaEle_edge=4
@@ -437,7 +441,7 @@ def fromInputfile1D(file_layup_input, model_name, element_type):
     model = mdb.models[model_name]
     mat_abq = list(model.materials.keys())
     set_name = 'Set_layup'
-    cv = session.viewports['Viewport: 1']
+    cv = session.viewports[session.currentViewportName]
     
     layup_input = file_layup_input.replace('\\','/')
     temp = layup_input.rsplit('/')

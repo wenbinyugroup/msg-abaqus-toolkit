@@ -74,6 +74,8 @@ def createSqrV5(model_name , fiber_flag,vf_f, fiber_matname,matrix_matname,mesh_
     elif elem_type == 'Quadratic':
         elementType1 = S8R
         elementType2 = STRI65
+    else:
+        raise ValueError('Unknown elem_type: %s' % elem_type)
     
     if fiber_flag == 1 : #vf_f is volume fraction  of the fiber
         vof_fiber = vf_f
@@ -317,6 +319,8 @@ def createSqrInterfaceV5(model_name, fiber_flag, vf_f, interface_flag,
     elif elem_type == 'Quadratic':
         elementType1 = S8R
         elementType2 = STRI65
+    else:
+        raise ValueError('Unknown elem_type: %s' % elem_type)
     
     if  fiber_flag == 1 : #vf_f is volume fraction  of the fiber
         vof_fiber = vf_f
@@ -325,19 +329,15 @@ def createSqrInterfaceV5(model_name, fiber_flag, vf_f, interface_flag,
         fiberRadius = vf_f
         vof_fiber = pi * fiberRadius**2 / blockSize**2
     
-    try: 
-        if interface_flag == 1 : #t_interface is volume fraction of the interface
-            vof_interface = t_interface
-            interfaceRadius = blockSize * sqrt((vof_interface+vof_fiber)/pi)
-            if interfaceRadius >=  blockSize/2.0 :
-                False
-        elif interface_flag == 2 :  #t_interface is thickness of the interface
-            interfaceRadius = fiberRadius+t_interface
-            vof_interface = pi * (interfaceRadius**2 - fiberRadius**2) / blockSize**2
-            if interfaceRadius >= blockSize/2.0:
-                False
-    except:
-        raise ValueError('The volume fraction of fiber and interphase is out of range. Please adjust the values.' )
+    if interface_flag == 1 : #t_interface is volume fraction of the interface
+        vof_interface = t_interface
+        interfaceRadius = blockSize * sqrt((vof_interface+vof_fiber)/pi)
+    elif interface_flag == 2 :  #t_interface is thickness of the interface
+        interfaceRadius = fiberRadius+t_interface
+        vof_interface = pi * (interfaceRadius**2 - fiberRadius**2) / blockSize**2
+
+    if interfaceRadius >= blockSize/2.0:
+        raise ValueError('The volume fraction of fiber and interphase is out of range. Please adjust the values.')
                    
     print('blockSize: %s' %blockSize)
     
@@ -574,6 +574,8 @@ def createHexV5(model_name , fiber_flag,vf_f, fiber_matname,matrix_matname,mesh_
     elif elem_type == 'Quadratic':
         elementType1 = S8R
         elementType2 = STRI65
+    else:
+        raise ValueError('Unknown elem_type: %s' % elem_type)
     
     totalArea = blockSizeA * blockSizeB * 4.0
     
@@ -799,6 +801,8 @@ def createHexInterfaceV5(model_name, fiber_flag, vf_f, interface_flag,
     elif elem_type == 'Quadratic':
         elementType1 = S8R
         elementType2 = STRI65
+    else:
+        raise ValueError('Unknown elem_type: %s' % elem_type)
 
     totalArea = blockSizeA * blockSizeB * 4.0
 
@@ -809,17 +813,14 @@ def createHexInterfaceV5(model_name, fiber_flag, vf_f, interface_flag,
         fiberRadius = vf_f
         vof_fiber = 2.0 * pi * fiberRadius**2.0 / totalArea
 
-    try:
-        if interface_flag == 1: #t_interface is volume fraction of the interface
-            vof_interface = t_interface
-            interfaceRadius = blockSize * sqrt(sqrt(3)*(vof_interface+vof_fiber)/2/pi)
-        elif interface_flag == 2:  #t_interface is thickness of the interface
-            interfaceRadius = fiberRadius + t_interface
-            vof_interface = 2 * pi * (interfaceRadius**2-fiberRadius**2) / totalArea
+    if interface_flag == 1: #t_interface is volume fraction of the interface
+        vof_interface = t_interface
+        interfaceRadius = blockSize * sqrt(sqrt(3)*(vof_interface+vof_fiber)/2/pi)
+    elif interface_flag == 2:  #t_interface is thickness of the interface
+        interfaceRadius = fiberRadius + t_interface
+        vof_interface = 2 * pi * (interfaceRadius**2-fiberRadius**2) / totalArea
 
-        if interfaceRadius >=  blockSize/2.0 :
-            False
-    except:
+    if interfaceRadius >= blockSize/2.0:
         raise ValueError('The volume fraction of fiber and interphase is out of range. Please adjust the values.')
 
     print('blockSize: %s' % blockSize)
@@ -969,7 +970,7 @@ def createHexInterfaceV5(model_name, fiber_flag, vf_f, interface_flag,
     mdb.models[model_name].parts[part2DName].MaterialOrientation(region=region,
         orientationType=GLOBAL, axis=AXIS_1, additionalRotationType=ROTATION_NONE,
         localCsys=None, fieldName='')
-    session.viewports['Viewport: 1'].setValues(displayedObject=p)
+    session.viewports[session.currentViewportName].setValues(displayedObject=p)
 
     # generate mesh
     p = mdb.models[model_name].parts[part2DName]

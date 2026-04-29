@@ -20,7 +20,22 @@ def reorgAbaqusInput(
         except Exception:
             return list(a)
 
+    def keyword_by_material_name(blocks, materials_list):
+        if isinstance(blocks, dict):
+            return {str(k).strip().upper(): v for k, v in blocks.items()}
+
+        by_name = {}
+        for i in range(len(materials_list)):
+            if i >= len(blocks):
+                break
+            mname = str(materials_list[i].parameter.get('name', '')).strip()
+            if mname:
+                by_name[mname.upper()] = blocks[i]
+        return by_name
+
     n_coord = nodes
+    density_by_name = keyword_by_material_name(densities, materials)
+    elastic_by_name = keyword_by_material_name(elastics, materials)
 
     mtr_id = 0
     mtr = {}
@@ -32,17 +47,19 @@ def reorgAbaqusInput(
         mname_key = mname_raw.upper()
         mtr_id += 1
         mtr_name2id[mname_key] = mtr_id
+        density_kw = density_by_name.get(mname_key)
+        elastic_kw = elastic_by_name.get(mname_key)
         try:
-            mtr_type_str = elastics[i].parameter['type'] if i < len(elastics) and elastics[i] is not None else 'ISOTROPIC'
+            mtr_type_str = elastic_kw.parameter['type'] if elastic_kw is not None else 'ISOTROPIC'
         except KeyError:
             mtr_type_str = 'ISOTROPIC'
         mtr_type = material_type.get(str(mtr_type_str).upper(), 0)
         mtr[mtr_id] = {'isotropy': mtr_type, 'ntemp': 1, 'elastic': []}
 
         # Density
-        if i < len(densities) and densities[i] and densities[i].data:
+        if density_kw and density_kw.data:
             try:
-                rho = float(densities[i].data[0][0])
+                rho = float(density_kw.data[0][0])
             except Exception as e:
                 raise ValueError(f"density parse failed for material '{mname_raw}': {e}")
         else:
@@ -51,8 +68,8 @@ def reorgAbaqusInput(
 
         # Elastic constants
         els = []
-        if i < len(elastics) and elastics[i] and getattr(elastics[i], 'data', None):
-            for j in elastics[i].data:
+        if elastic_kw and getattr(elastic_kw, 'data', None):
+            for j in elastic_kw.data:
                 for k in j:
                     if k is not None:
                         try:
@@ -249,7 +266,7 @@ def reorgAbaqusInput(
     e_connt_2d3  = rows_from_block(elements2d.get(3, []))
     e_connt_2d4  = rows_from_block(elements2d.get(4, []))
     e_connt_2d6  = rows_from_block(elements2d.get(6, []))
-    e_connt__2d8 = rows_from_block(elements2d.get(8, []))
+    e_connt_2d8  = rows_from_block(elements2d.get(8, []))
 
     e_connt_3d4  = rows_from_block(elements3d.get(4, []))
     e_connt_3d6  = rows_from_block(elements3d.get(6, []))
@@ -264,7 +281,7 @@ def reorgAbaqusInput(
     e_connt_2d3  = drop_zero_eid(e_connt_2d3)
     e_connt_2d4  = drop_zero_eid(e_connt_2d4)
     e_connt_2d6  = drop_zero_eid(e_connt_2d6)
-    e_connt_2d8  = drop_zero_eid(e_connt__2d8)
+    e_connt_2d8  = drop_zero_eid(e_connt_2d8)
     e_connt_3d4  = drop_zero_eid(e_connt_3d4)
     e_connt_3d6  = drop_zero_eid(e_connt_3d6)
     e_connt_3d8  = drop_zero_eid(e_connt_3d8)
@@ -297,8 +314,8 @@ def reorgAbaqusInput(
             rr = r[:4] + [0] + r[4:]
             ins.append(rr)
         e2d += pad2d(ins)
-    if e_connt__2d8:
-        e2d += pad2d(e_connt__2d8)
+    if e_connt_2d8:
+        e2d += pad2d(e_connt_2d8)
     elements2d_list = e2d
 
     e3d = []

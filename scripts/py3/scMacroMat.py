@@ -10,7 +10,6 @@ from customKernel import CommandRegister, RegisteredList , RegisteredTuple#, Rep
 from userDataSG import *
 from UcheckDehoVisual import *
 from Usgmodel_info import *
-import os
 
 
 def importSCmat(
@@ -26,8 +25,6 @@ def importSCmat(
         analysis = 3
     elif analysis == 44:
         analysis = 4
-#    SCfileName, sc_input, analysis,  macro_model, macro_model_dimension=sgmodel_info(sgmodel_source=sgmodel_source, sg_name=sg_name, sc_input=sc_input,  analysis=analysis, macro_model=macro_model)
-
     result = sgmodel_info(sgmodel_source, sg_name, sc_input,
                           analysis, macro_model,ap_flag=False)
     SCfileName = result[0]
@@ -35,54 +32,6 @@ def importSCmat(
     analysis = result[2]
     macro_model = result[3]
     macro_model_dimension = result[4]
-    #return SCfileName, sc_input, analysis,  macro_model, macro_model_dimension    
-    #if sgmodel_source==1:  # sgmodel_source==1: sg_name;   sgmodel_source==2: sc_input file path and name
-    #        
-    #    SCfileName=sg_name
-    #    scinput=mdb.customData.sgs[sg_name].swiftcomp_filename
-    ##        ------> 'scinput has .sc with no path'
-    #
-    ##        scpath=mdb.customData.sgs[sg_name].swiftcomp_filepath
-    ##        currentpath=os.getcwd()
-    ##        if scpath !=currentpath:
-    ##            raise ValueError('File %s.sc is at %s, \n the work directory is %s. \n File %s.sc and the homogenization output files should be in the work directory.' %(sg_name, scpath, currentpath, sg_name))
-    ##            return
-    #    currentpath=os.getcwd()
-    #    sc_input=currentpath+'\\'+scinput
-    #    
-    #    
-    #    if debug==1:
-    #        print ('--->sc_input corresponding to the sg model is  %s' % sc_input)
-    #        print ('--->sc_global  %s' % sc_global)
-    #        
-    #elif sgmodel_source==2:
-    #    sc_input=sc_input.replace('/','\\')
-    #    scpath=os.path.dirname(sc_input)
-    #    currentpath=os.getcwd()
-    #    if debug==1:
-    #        print 'when sgmodel_source==2: ' 
-    #        print 'sc_input %s chosen in dialog box: ' % scpath
-    #        print 'scpath =os.path.dirname(sc_input) : %s' % scpath
-    #        print 'currentpath=os.getcwd() : %s' % currentpath
-    #    temp_name = sc_input.rsplit('\\',1)
-    #    temp_name = temp_name[-1]
-    #    temp_name = temp_name.split('.')
-    #    SCfileName = temp_name[0]
-    #    if scpath !=currentpath:
-    #        raise ValueError('File %s.sc is at %s, \n the work directory is %s. \n File %s.sc and the homogenization output files should be in the work directory.' %(SCfileName, scpath, currentpath, SCfileName))
-    ##        return
-    #    
-    #    if debug==1:
-    #        print '---> sc_input selected is %s ' % sc_input
-    #    
-    #if sgmodel_source == 1:
-    #    sg=mdb.customData.sgs[sg_name]
-    #    analysis = sg.analysis
-    #    macro_model_dimension=sg.macro_model_dimension
-    #    macro_model=int(macro_model_dimension.strip('D'))
-    #if sgmodel_source == 2:
-    #    macro_model_dimension=str(macro_model)+'D'
-
     if debug == 1:
         print('sc_input %s' % sc_input)
         print('SCfileName %s' % SCfileName)
@@ -102,6 +51,7 @@ def importSCmat(
     print(('Read homogenized properties from %s.' % sc_input_k)) 
     
     i = 1
+    title = None
 
     with open(sc_input_k, 'r') as fin:
         for line in fin:
@@ -141,6 +91,8 @@ def importSCmat(
                 elif len(line) == 1 and line[0][0] == '-':
 #                    j=0
                     continue
+                elif title is None:
+                    raise ValueError('Unknown section header in %s: %s' % (sc_input_k, ' '.join(line)))
                 elif title == 'Stiffness':
     #                print j
                     line = list(map(float, line))
@@ -155,6 +107,8 @@ def importSCmat(
                 elif title == 'Heat':
                     sheat.append(float(line[-1]))
 #                    j=j+1
+                else:
+                    raise ValueError('Unknown section header in %s: %s' % (sc_input_k, title))
     
     if prop_matrix != []:
         if debug == 1:
@@ -192,11 +146,21 @@ def importSCmat(
         if debug == 1:
             print(sheat_tuple)
     
+    if model_name in mdb.models:
+        raise ValueError(
+            "Model '%s' already exists. Delete or rename it before importing SwiftComp materials."
+            % model_name
+        )
     mdb.Model(name=model_name, modelType=STANDARD_EXPLICIT)
     model = mdb.models[model_name]
     
     if macro_model_dimension == '3D':
         scMat_name_matrix = scMat_name + '_matrix'
+        if scMat_name_matrix in model.materials:
+            raise ValueError(
+                "Material '%s' already exists in model '%s'. Delete or rename it before importing SwiftComp materials."
+                % (scMat_name_matrix, model_name)
+            )
         model.Material(name=scMat_name_matrix)
         material = model.materials[scMat_name_matrix]
         material.Elastic(type=ANISOTROPIC, table=(prop_matrix_tuple,))
@@ -217,6 +181,11 @@ def importSCmat(
     #            temperatureDependency=ON, table=((1.0, 2.0), (3.0, 4.0)))
 
         if prop_engi != []:
+            if scMat_name_engi in model.materials:
+                raise ValueError(
+                    "Material '%s' already exists in model '%s'. Delete or rename it before importing SwiftComp materials."
+                    % (scMat_name_engi, model_name)
+                )
             model.Material(name=scMat_name_engi)
             material = model.materials[scMat_name_engi]
             material.Elastic(type=ENGINEERING_CONSTANTS, table=(prop_engi_tuple, ))

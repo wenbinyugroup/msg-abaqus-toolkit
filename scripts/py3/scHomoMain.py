@@ -6,8 +6,8 @@ from scGen1DInput_aba import *
 from UdetermineVolume import *
 from UdetermineNSG import *
 from userDataSG import *
-from convert2sc import *
 from createSCInputMain import *
+import subprocess
 import time
 import os
 
@@ -16,8 +16,15 @@ def homogenization(
         gen_input_only, model_source, macro_model, analysis,
         elem_flag, trans_flag, ap1, ap2, ap3, w='',
         model_name='', part_name='', abaqus_input='', new_filename='',
-        specific_model=0, bk=[[0.0, 0.0, 0.0]],
-        sk=[[0.0, 0.0]], cos=[[1.0, 0.0]], temp_flag=0):
+        specific_model=0, bk=None,
+        sk=None, cos=None, temp_flag=0):
+
+    if bk is None:
+        bk = [[0.0, 0.0, 0.0]]
+    if sk is None:
+        sk = [[0.0, 0.0]]
+    if cos is None:
+        cos = [[1.0, 0.0]]
     
     # ap = []
     # ap = [
@@ -92,12 +99,6 @@ def homogenization(
         else:
             w = float(w)
         
-        # [sc_input, macro_model_dim] = convert2sc(
-        #     abaqus_input, new_filename, macro_model, specific_model,
-        #     analysis, elem_flag, trans_flag, temp_flag,
-        #     bk[0], sk[0], cos[0], w
-        # )
-
         [sc_input, macro_model_dim] = createSCInputMain(
             abaqus_input, new_filename, macro_model, specific_model,
             analysis, elem_flag, trans_flag, temp_flag,
@@ -107,31 +108,23 @@ def homogenization(
     print('Finish creating SwiftComp input.')
 
     if not gen_input_only:
-        try:
-            scTimestart = time.perf_counter()
-            if apvector == [0, 0, 0]:
-                os.system(
-                    'Swiftcomp ' + sc_input + ' ' + macro_model_dim + ' H'
-                )
-            else:
-                os.system(
-                    'Swiftcomp ' + sc_input + ' ' + macro_model_dim + ' HA'
-                )
-
-            scTimeEnd = time.perf_counter()
-            scTime = scTimeEnd - scTimestart
-
-            # os.system('Notepad ' + sc_input + '.k')
-            print('scTime: ' + str(scTime))
-
-        except:
-            raise WindowsError(
-                '''
-                Unexpected error happened. 
-                Please check the Command line window 
-                for more information.
-                '''
+        scTimestart = time.perf_counter()
+        cmd = ['Swiftcomp', sc_input, macro_model_dim]
+        if apvector == [0, 0, 0]:
+            cmd.append('H')
+        else:
+            cmd.append('HA')
+        result = subprocess.run(cmd, timeout=300, check=False)
+        if result.returncode != 0:
+            raise RuntimeError(
+                'SwiftComp exited with code %d' % result.returncode
             )
+
+        scTimeEnd = time.perf_counter()
+        scTime = scTimeEnd - scTimestart
+
+        # os.system('Notepad ' + sc_input + '.k')
+        print('scTime: ' + str(scTime))
 
     return 1
 
