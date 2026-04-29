@@ -14,6 +14,7 @@ from main import utilities_abq as uab
 from textRepr import *
 from utils import abq_view
 from utils.UcheckDehoVisual import *
+from sgdataio import swiftcomp as scio
 import os.path
 import os, shutil
 import sys
@@ -513,143 +514,39 @@ def visualization(macro_model, ap_flag, sc_input):
     checkDehoVisual(sc_input_sc, 'visual')
     
     
-    macro_model_dimension=str(macro_model)+'D'
-    skip_line = _get_skip_lines(macro_model_dimension, ap_flag)
-            
-    i = 1
-    j = 1
-    
-    # ------------------------------------
-    # Read model data from VABS input file
-    
-    node_coord = []  # Nodal coordinates      [(n1, x1, x2, x3), ...]
-    elem_sectn = {}  # Material sections      {'s1': [e1, e2, e3, ...], ...}
-    elem_label = []  # Element labels         [e1, e2, e3, ...]
-    
-    elem_connt_s3 = []
-    elem_connt_s6 = []
-    elem_connt_s4 = []
-    elem_connt_s8 = []
-    elem_connt_s9 = []
-    
-    elem_connt_c4  = []
-    elem_connt_c6  = []
-    elem_connt_c10 = []
-    elem_connt_c8  = []
-    elem_connt_c20 = []
-    elem_connt_c15 = []
-    
-    elem_connt_b31_temp=[]
+    macro_model_dimension = str(macro_model) + 'D'
+    mesh_data = scio.read_swiftcomp_input_mesh(
+        sc_input, macro_model_dimension, ap_flag
+    )
+    nsg = mesh_data['nsg']
+    node_coord = mesh_data['node_coord']
+    elem_sectn = mesh_data['elem_sectn']
+    elem_label = mesh_data['elem_label']
+    elem_connt_s3 = mesh_data['elem_connt_s3']
+    elem_connt_s6 = mesh_data['elem_connt_s6']
+    elem_connt_s4 = mesh_data['elem_connt_s4']
+    elem_connt_s8 = mesh_data['elem_connt_s8']
+    elem_connt_s9 = mesh_data['elem_connt_s9']
+    elem_connt_c4 = mesh_data['elem_connt_c4']
+    elem_connt_c6 = mesh_data['elem_connt_c6']
+    elem_connt_c10 = mesh_data['elem_connt_c10']
+    elem_connt_c8 = mesh_data['elem_connt_c8']
+    elem_connt_c20 = mesh_data['elem_connt_c20']
+    elem_connt_c15 = mesh_data['elem_connt_c15']
+    elem_connt_b31_temp = mesh_data['elem_connt_b31_temp']
     elem_connt_b31 = []
-    
-    print('--> Reading SwiftComp input file...')
-    
-    with open(sc_input, 'r') as fin:
-        for line in fin:
-            line = line.strip()
-            if line == '\n' or line == '':
-                continue
-            else:
-                line = line.split()
-                if i in skip_line:
-                    i += 1
-                    continue
-                elif i == skip_line[-1] + 1:
-                    nsg = int(line[0])              # Read the dimension of SG
-                    nnode = int(line[1])            # Read the number of nodes
-                    nelem = int(line[2])            # Read the number of elements
-                    
-                    print('nsg %d'%nsg)
-                    print('nnode %d'%nnode) 
-                    print('nelem %d'%nelem)
-                    i += 1
-                elif j <= nnode:                    # Read nodal coordinates
-                    if nsg == 1:
-                        node_coord.append((int(line[0]), 0.0, 0.0, float(line[1])))
-                    elif nsg == 2:
-                        node_coord.append((int(line[0]), 0.0, float(line[1]), float(line[2])))
-                    elif nsg == 3:
-                        node_coord.append((int(line[0]), float(line[1]), float(line[2]), float(line[3])))
-                    j += 1
-                elif j <= (nnode + nelem):          # Read element connectivities
-                    elem_label.append(int(line[0]))
-                    temp = line[2:]
-                    temp = [int(i) for i in temp if i != '0']
-                    temp = [int(line[0])] + temp
-                    if len(line) == 7:       # 1D element
-                        elem_connt_b31_temp.append(tuple(temp))
-                    elif len(line) == 11:       # 2D element
-                        if len(temp) == 4:
-                            elem_connt_s3.append(tuple(temp))
-                        elif len(temp) == 7:
-                            elem_connt_s6.append(tuple(temp))
-                        elif len(temp) == 5:
-                            elem_connt_s4.append(tuple(temp))
-                        elif len(temp) == 9:
-                            elem_connt_s8.append(tuple(temp))
-                        elif len(temp) == 10:
-                            elem_connt_s9.append(tuple(temp))
-                    elif len(line) >= 22:       # 3D element
-                        if len(temp) == 5:
-                            elem_connt_c4.append(tuple(temp))
-                        elif len(temp) == 7:   
-                            elem_connt_c6.append(tuple(temp))
-                        elif len(temp) == 11:
-                            elem_connt_c10.append(tuple(temp))
-                        elif len(temp) == 9:
-                            elem_connt_c8.append(tuple(temp))
-                        elif len(temp) == 16:  
-                            elem_connt_c15.append(tuple(temp))
-                        elif len(temp) == 21:
-                            elem_connt_c20.append(tuple(temp))
-                    sect = line[1]                  # Read material sections
-                    if sect not in list(elem_sectn.keys()):
-                        elem_sectn[sect] = []
-                    elem_sectn[sect].append(int(line[0]))
-                    j += 1
-    
-    elem_connt_s3.sort()
-    elem_connt_s6.sort()
-    elem_connt_s4.sort()
-    elem_connt_s8.sort()
-    elem_connt_c4.sort()
-    elem_connt_c6.sort()
-    elem_connt_c10.sort()
-    elem_connt_c8.sort()
-    elem_connt_c15.sort() 
-    elem_connt_c20.sort()
-    
-    # 1D 
-    elem_connt_b31_temp.sort()
-    print('    Done.')
 
-    # -----------------------------------------
-    # Read nodal displacement data from .U file
-    
-    print('--> Reading result files...')
-    node_label, u_data = _read_displacement_results(u_filename)
-    
-    # ------------------------------------------------------
-    # Read integration point strain/stress data from .sg file
-    
-    sg_strain, sg_stress = _read_tensor_results(sg_filename, nsg, 'sg')
-    
-    # --------------------------------------------
-    # Read element nodal strain data from .sn file
-    
-    sn_strain, sn_stress = _read_tensor_results(sn_filename, nsg, 'sn')
-        
-    # ------------------------------------------------------
-    # Read integration point strain/stress data under material frame from .sgm file
-    
-    sgm_strain, sgm_stress = _read_tensor_results(sgm_filename, nsg, 'sgm')
-    
-    # --------------------------------------------
-    # Read element nodal strain data under material frame from .snm file
-    
-    snm_strain, snm_stress = _read_tensor_results(snm_filename, nsg, 'snm')
-    
-    print('    Done.')
+    result_data = scio.read_swiftcomp_results(sc_input, nsg)
+    node_label = result_data['node_label']
+    u_data = result_data['u_data']
+    sg_strain = result_data['sg_strain']
+    sg_stress = result_data['sg_stress']
+    sn_strain = result_data['sn_strain']
+    sn_stress = result_data['sn_stress']
+    sgm_strain = result_data['sgm_strain']
+    sgm_stress = result_data['sgm_stress']
+    snm_strain = result_data['snm_strain']
+    snm_stress = result_data['snm_stress']
     
     #=========================================================
     # tranfer sn data for nsg==1:  only work for cases that each edge contains the same number of B31 elements!

@@ -2,40 +2,8 @@ from abaqus import *
 from utils.parseAbaqusInput import *
 from utils.reorgAbaqusInput import *
 from utils.writeVABSInput import *
+from sgdataio.vabs import resolve_vabs_trans_flag
 import os
-
-def _resolve_vabs_trans_flag(trans_flag, sections, distributions):
-    """Resolve the elemental-orientation mode for VABS input conversion.
-
-    Parameters
-    ----------
-    trans_flag : int | bool | None
-        Explicit caller-provided elemental orientation flag. ``None`` means
-        infer from the parsed Abaqus input.
-    sections : list
-        Parsed Abaqus section keyword objects.
-    distributions : list
-        Parsed Abaqus distribution keyword objects.
-
-    Returns
-    -------
-    int
-        ``1`` when local elemental orientation data is required, otherwise
-        ``0``.
-    """
-    if trans_flag is not None:
-        return int(trans_flag)
-
-    for section in sections:
-        params = {str(k).lower(): v for k, v in section.parameter.items()}
-        if 'composite' in params or 'orientation' in params:
-            return 1
-
-    for distribution in distributions:
-        if getattr(distribution, 'data', None):
-            return 1
-
-    return 0
 
 def createVABSInputMain(
     abq_inp, new_filename,
@@ -65,7 +33,7 @@ def createVABSInputMain(
     materials = results['materials']
     densities = results['densities']
     elastics = results['elastics']
-    trans_flag = _resolve_vabs_trans_flag(
+    trans_flag = resolve_vabs_trans_flag(
         trans_flag, sections, distributions
     )
 

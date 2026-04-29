@@ -12,6 +12,7 @@ from customKernel import CommandRegister, RegisteredList , RegisteredTuple#, Rep
 from sg.sg_data import *
 from utils.UcheckDehoVisual import *
 from main.Usgmodel_info import *
+from sgdataio.swiftcomp import write_swiftcomp_glb
 
 
 def localization(
@@ -141,42 +142,19 @@ def localization(
 
 
 
-    with open(sc_global, 'w') as fout:
-        writeFormat(fout, 'EEE', v)
-        fout.write('\n')
-        writeFormat(fout, 'EEE', c[0])
-        fout.write('\n')
-        writeFormat(fout, 'EEE', c[1])
-        fout.write('\n')
-        writeFormat(fout, 'EEE', c[2])
-        fout.write('\n')
-        writeFormat(fout, 'd', [load_measure])
-        fout.write('\n')
-
-        # Write generalized quantities by dimensional model
-        if macro_model_dimension == '1D':
-            # be contains [e11, k11, k12, k13] OR for stress [F1, M1, M2, M3] if user entered that order
-            fout.write(" ".join(str(float(x)) for x in be) + "\n")
-            # For Timoshenko we don't need to force placeholders; GUI provides correct triplets in 'be'
-            # and 'bk', already folded above.
-
-        elif macro_model_dimension == '2D':
-            # For KL: 6 numbers. For Mindlin: 6 + 2 numbers (extra pair).
-            # 'se' already includes membrane (3) + bending (3) after folding se[0] + sk[0].
-            if shell_model.lower() in ('mindlin','reissner-mindlin') and len(mindlin_extra) > 0:
-                pair = (mindlin_extra + [0.0, 0.0])[:2]
-                all_vals = list(se) + list(pair)
-                fout.write(" ".join(str(float(x)) for x in all_vals) + "\n")
-            else:
-                fout.write(" ".join(str(float(x)) for x in se) + "\n")
-
-        elif macro_model_dimension == '3D':
-            # 6 numbers for 3D (strain or stress), already folded into 'e'
-            fout.write(" ".join(str(float(x)) for x in e) + "\n")
-
-        fout.write('\n')
-        if analysis==1:
-            writeFormat(fout, 'E', tm)
+    write_swiftcomp_glb(
+        sc_global=sc_global,
+        macro_displacement=v,
+        macro_rotation=c,
+        load_measure=load_measure,
+        macro_model_dimension=macro_model_dimension,
+        beam_values=be,
+        shell_values=se,
+        solid_values=e,
+        temperature_increment=tm if analysis == 1 else None,
+        shell_model=shell_model,
+        mindlin_extra=mindlin_extra,
+    )
 
     #execute dehomogenization
     cwd = os.getcwd()

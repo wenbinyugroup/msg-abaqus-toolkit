@@ -14,6 +14,7 @@ from main import utilities_abq as uab
 from textRepr import *
 from utils import abq_view
 from utils.UcheckDehoVisual import *
+from sgdataio import vabs as vabsio
 import os.path
 
 # ==============================================================================
@@ -88,286 +89,28 @@ def visualization(vabs_input):
     #     elif macro_model_dimension == '3D':          # Solid/Block
     #         skip_line = [1, 2 ]
             
-    i = 1
-    j = 1
-    
-    # ------------------------------------
-    # Read model data from VABS input file
-    
-    node_coord = []  # Nodal coordinates      [(n1, x1, x2, x3), ...]
-    elem_connt = []  # Element connectivities [(e1, n1, n2, n3, n4, ...), ...]
-    elem_sectn = {}  # Material sections      {'s1': [e1, e2, e3, ...], ...}
-    elem_label = []  # Element labels         [e1, e2, e3, ...]
-    
-    # elem_label_s3 = []
-    # elem_label_s4 = []
+    mesh_data = vabsio.read_vabs_input_mesh(vabs_input)
+    node_coord = mesh_data['node_coord']
+    elem_connt = mesh_data['elem_connt']
+    elem_sectn = mesh_data['elem_sectn']
+    elem_label = mesh_data['elem_label']
+    elem_connt_s3 = mesh_data['elem_connt_s3']
+    elem_connt_s6 = mesh_data['elem_connt_s6']
+    elem_connt_s4 = mesh_data['elem_connt_s4']
+    elem_connt_s8 = mesh_data['elem_connt_s8']
+    elem_connt_s9 = mesh_data['elem_connt_s9']
 
-    elem_connt_s3 = []
-    elem_connt_s6 = []
-    elem_connt_s4 = []
-    elem_connt_s8 = []
-    elem_connt_s9 = []
-    
-    # elem_connt_c4  = []
-    # elem_connt_c10 = []
-    # elem_connt_c8  = []
-    # elem_connt_c20 = []
-    
-    # elem_connt_b31_temp=[]
-    # elem_connt_b31 = []
-    
-    print('--> Reading VABS input file...')
-    skip_line = [1, 2, 3]
-    with open(vabs_input, 'r') as fin:
-        for line in fin:
-            line = line.strip()
-            if line == '\n' or line == '':
-                continue
-            else:
-                line = line.split()
-                if i in skip_line:
-                    i += 1
-                    continue
-                elif i == skip_line[-1] + 1:
-                    # nsg = int(line[0])              # Read the dimension of SG
-                    nnode = int(line[0])            # Read the number of nodes
-                    nelem = int(line[1])            # Read the number of elements
-                    
-                    # print 'nsg %d'%nsg
-                    # print 'nnode %d'%nnode 
-                    # print 'nelem %d'%nelem
-                    i += 1
-                elif j <= nnode:                    # Read nodal coordinates
-                    # if nsg == 1:
-                    #     node_coord.append((int(line[0]), 0.0, 0.0, float(line[1])))
-                    # elif nsg == 2:
-                    node_coord.append((int(line[0]), 0.0, float(line[1]), float(line[2])))
-                    # elif nsg == 3:
-                    #     node_coord.append((int(line[0]), float(line[1]), float(line[2]), float(line[3])))
-                    j += 1
-                elif j <= (nnode + nelem):          # Read element connectivities
-                    elem_label.append(int(line[0]))
-                    # temp = line[2:]
-                    temp = [int(i) for i in line if i != '0']
-                    # temp = [int(line[0])] + temp
-                    elem_connt.append(tuple(temp))
-                    
-                    # if len(line) == 7:       # 1D element
-                    #     elem_connt_b31_temp.append(tuple(temp))
-                    # elif len(line) == 11:       # 2D element
-                    if len(temp) == 4:
-                        # elem_label_s3.append(int(line[0]))
-                        elem_connt_s3.append(tuple(temp))
-                    elif len(temp) == 7:
-                        elem_connt_s6.append(tuple(temp))
-                    elif len(temp) == 5:
-                        # elem_label_s4.append(int(line[0]))
-                        elem_connt_s4.append(tuple(temp))
-                    elif len(temp) == 9:
-                        elem_connt_s8.append(tuple(temp))
-                    elif len(temp) == 10:
-                        elem_connt_s9.append(tuple(temp))
-                    # elif len(line) >= 22:       # 3D element
-                    #     if len(temp) == 5:
-                    #         elem_connt_c4.append(tuple(temp))
-                    #     elif len(temp) == 11:
-                    #         elem_connt_c10.append(tuple(temp))
-                    #     elif len(temp) == 9:
-                    #         elem_connt_c8.append(tuple(temp))
-                    #     elif len(temp) == 21:
-                    #         elem_connt_c20.append(tuple(temp))
-                    # sect = line[1]                  # Read material sections
-                    # if sect not in elem_sectn.keys():
-                    #     elem_sectn[sect] = []
-                    # elem_sectn[sect].append(int(line[0]))
-                    j += 1
-                elif j <= (nnode + nelem + nelem):  # Read material sections
-                    eid = int(line[0])
-                    sect = int(line[1])
-                    if sect not in list(elem_sectn.keys()):
-                        elem_sectn[sect] = []
-                    elem_sectn[sect].append(eid)
-                    j += 1
-    
-    elem_label.sort()
-    # print elem_label[:10]
-
-    elem_connt_s3.sort()
-    elem_connt_s6.sort()
-    elem_connt_s4.sort()
-    elem_connt_s8.sort()
-    # elem_connt_c4.sort()
-    # elem_connt_c10.sort()
-    # elem_connt_c8.sort()
-    # elem_connt_c20.sort()
-    # print len(elem_connt_s3)
-    # print len(elem_connt_s6)
-    # print len(elem_connt_s4)
-    # print len(elem_connt_s8)
-    # 1D 
-    # elem_connt_b31_temp.sort()
-    print('    Done.')
-
-    # -----------------------------------------
-    # Read nodal displacement data from .U file
-    
-    print('--> Reading result files...')
-    node_label = []  # Node labels         [n1, n2, n3, ...]
-    u_data     = []  # Nodal displacements [(u1, u2, u3), ...]
-    
-    try:
-        print('    -> Reading .U file...')
-        with open(fn_u, 'r') as fin:
-            for line in fin:
-                line = line.strip()
-                if line == '\n' or line == '':
-                    continue
-                else:
-                    line = line.split()
-                    node_label.append(int(line[0]))
-                    u_data.append((float(line[3]), float(line[4]), float(line[5])))
-    except:
-        print('--! Cannot find .U file.')
-                
-    #print len(u_data)
-    
-    # ------------------------------------------------------
-    # Read integration point strain/stress data from .e/s file
-    
-    sg_strain = []  # Integration point strains  [(e11,  e22,  e33, 2e23, 2e13, 2e12), ...]
-    sg_stress = []  # Integration point stresses [(s11,  s22,  s33,  s23,  s13,  s12), ...]
-    
-    try:
-        print('    -> Reading .E file...')
-        with open(fn_e, 'r') as fin:
-            for line in fin:
-                line = line.strip()
-                if line == '\n' or line == '':
-                    continue
-                else:
-                    line = line.split()
-                    temp_e = [float(i) for i in line[2:]]
-                    sg_strain.append(tuple(temp_e))
-    except:
-        print('--! Cannot find .E file.')
-
-    try:
-        print('    -> Reading .S file...')
-        with open(fn_s, 'r') as fin:
-            for line in fin:
-                line = line.strip()
-                if line == '\n' or line == '':
-                    continue
-                else:
-                    line = line.split()
-                    temp_s = [float(i) for i in line[2:]]
-                    sg_stress.append(tuple(temp_s))
-    except:
-        print('--! Cannot find .S file.')
-    
-    # --------------------------------------------
-    # Read element nodal strain data from .en/sn file
-    
-    sn_strain = []  # Element nodal strains  [(en11,  en22,  en33, 2en23, 2en13, 2en12), ...]
-    sn_stress = []  # Element nodal stresses [(sn11,  sn22,  sn33,  sn23,  sn13,  sn12), ...]
-    
-    try:
-        print('    -> Reading .EN file...')
-        with open(fn_en, 'r') as fin:
-            for line in fin:
-                line = line.strip()
-                if line == '\n' or line == '':
-                    continue
-                else:
-                    line = line.split()
-                    temp_e = [float(i) for i in line[3:]]
-                    sn_strain.append(tuple(temp_e))
-    except:
-        print('--! Cannot find .EN file.')
-
-    try:
-        print('    -> Reading .SN file...')
-        with open(fn_sn, 'r') as fin:
-            for line in fin:
-                line = line.strip()
-                if line == '\n' or line == '':
-                    continue
-                else:
-                    line = line.split()
-                    temp_s = [float(i) for i in line[3:]]
-                    sn_stress.append(tuple(temp_s))
-    except:
-        print('--! Cannot find .SN file.')
-        
-    # ------------------------------------------------------
-    # Read integration point strain/stress data under material frame from .em/sm file
-    
-    sgm_strain = []  # Integration point strains  [(e11,  e22,  e33, 2e23, 2e13, 2e12), ...]
-    sgm_stress = []  # Integration point stresses [(s11,  s22,  s33,  s23,  s13,  s12), ...]
-    
-    try:
-        print('    -> Reading .EM file...')
-        with open(fn_em, 'r') as fin:
-            for line in fin:
-                line = line.strip()
-                if line == '\n' or line == '':
-                    continue
-                else:
-                    line = line.split()
-                    temp_e = [float(i) for i in line[2:]]
-                    sgm_strain.append(tuple(temp_e))
-    except:
-        print('--! Cannot find .EM file.')
-
-    try:
-        print('    -> Reading .SM file...')
-        with open(fn_sm, 'r') as fin:
-            for line in fin:
-                line = line.strip()
-                if line == '\n' or line == '':
-                    continue
-                else:
-                    line = line.split()
-                    temp_s = [float(i) for i in line[2:]]
-                    sgm_stress.append(tuple(temp_s))
-    except:
-        print('--! Cannot find .SM file.')
-    
-    # --------------------------------------------
-    # Read element nodal strain data under material frame from .emn/smn file
-    
-    snm_strain = []  # Element nodal strains  [(en11,  en22,  en33, 2en23, 2en13, 2en12), ...]
-    snm_stress = []  # Element nodal stresses [(sn11,  sn22,  sn33,  sn23,  sn13,  sn12), ...]
-    
-    try:
-        print('    -> Reading .EMN file...')
-        with open(fn_emn, 'r') as fin:
-            for line in fin:
-                line = line.strip()
-                if line == '\n' or line == '':
-                    continue
-                else:
-                    line = line.split()
-                    temp_e = [float(i) for i in line[3:]]
-                    snm_strain.append(tuple(temp_e))
-    except:
-        print('--! Cannot find .EMN file.')
-
-    try:
-        print('    -> Reading .SMN file...')
-        with open(fn_smn, 'r') as fin:
-            for line in fin:
-                line = line.strip()
-                if line == '\n' or line == '':
-                    continue
-                else:
-                    line = line.split()
-                    temp_s = [float(i) for i in line[3:]]
-                    snm_stress.append(tuple(temp_s))
-    except:
-        print('--! Cannot find .SMN file.')
-    
-    print('    Done.')
+    result_data = vabsio.read_vabs_results(vabs_input)
+    node_label = result_data['node_label']
+    u_data = result_data['u_data']
+    sg_strain = result_data['sg_strain']
+    sg_stress = result_data['sg_stress']
+    sn_strain = result_data['sn_strain']
+    sn_stress = result_data['sn_stress']
+    sgm_strain = result_data['sgm_strain']
+    sgm_stress = result_data['sgm_stress']
+    snm_strain = result_data['snm_strain']
+    snm_stress = result_data['snm_stress']
     
     #=========================================================
     # tranfer sn data for nsg==1:  only work for cases that each edge contains the same number of B31 elements!

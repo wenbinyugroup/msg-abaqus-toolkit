@@ -10,6 +10,7 @@ from customKernel import CommandRegister, RegisteredList , RegisteredTuple#, Rep
 from sg.sg_data import *
 from utils.UcheckDehoVisual import *
 from main.Usgmodel_info import *
+from sgdataio.swiftcomp import read_swiftcomp_homogenized_properties
 
 
 def importSCmat(
@@ -42,109 +43,32 @@ def importSCmat(
     scMat_name = SCfileName  
     model_name = SCfileName
      
-    prop_matrix = []
-    prop_engi = []
-    CTE = []
-    sheat = []
-    density = 0.0
     print('\n')
     print(('Read homogenized properties from %s.' % sc_input_k)) 
-    
-    i = 1
-    title = None
+    material_data = read_swiftcomp_homogenized_properties(sc_input_k)
+    prop_matrix = material_data['prop_matrix']
+    prop_matrix_tuple = material_data['prop_matrix_tuple']
+    prop_engi = material_data['prop_engi']
+    prop_engi_tuple = material_data['prop_engi_tuple']
+    CTE = material_data['cte']
+    CTE_tuple = material_data['cte_tuple']
+    sheat = material_data['sheat']
+    sheat_tuple = material_data['sheat_tuple']
+    density = material_data['density']
 
-    with open(sc_input_k, 'r') as fin:
-        for line in fin:
-            line = line.strip()
-    #        print line
-    #        print i
-            i = i + 1
-            if line == '\n' or line == '':
-                continue
-            else:
-                line = line.split()
-                if 'Stiffness' in line:
-                    title = 'Stiffness'
-#                    j=0
-                    continue
-                elif 'Engineering' in line:
-                    title = 'Engineering'
-#                    j=0
-                    continue
-                elif 'Compliance' in line:
-                    title = 'Compliance'
-#                    j=0
-                    continue
-                elif 'Thermal' in line:
-                    title = 'Thermal'
-#                    j=0
-                    continue
-                elif 'Heat' in line:
-                    title = 'Heat'
-#                    j=0
-                    continue
-                elif 'Density' in line:
-                    density = float(line[-1])
-#                    j=0
-                    continue
-                
-                elif len(line) == 1 and line[0][0] == '-':
-#                    j=0
-                    continue
-                elif title is None:
-                    raise ValueError('Unknown section header in %s: %s' % (sc_input_k, ' '.join(line)))
-                elif title == 'Stiffness':
-    #                print j
-                    line = list(map(float, line))
-                    prop_matrix.append(line)
-#                    j=j+1
-                elif title == 'Engineering':
-                    prop_engi.append(float(line[-1]))
-#                    j=j+1
-                elif title == 'Thermal':
-                    CTE.append(float(line[-1]))
-#                    j=j+1
-                elif title == 'Heat':
-                    sheat.append(float(line[-1]))
-#                    j=j+1
-                else:
-                    raise ValueError('Unknown section header in %s: %s' % (sc_input_k, title))
-    
-    if prop_matrix != []:
-        if debug == 1:
-            print(prop_matrix)
-        
-        prop_matrix_tuple = (
-            prop_matrix[0][0],
-            prop_matrix[1][0], prop_matrix[1][1],
-            prop_matrix[2][0], prop_matrix[2][1], prop_matrix[2][2],
-            prop_matrix[3][0], prop_matrix[3][1], prop_matrix[3][2],
-            prop_matrix[3][3],
-            prop_matrix[4][0], prop_matrix[4][1], prop_matrix[4][2],
-            prop_matrix[4][3], prop_matrix[4][4],
-            prop_matrix[5][0], prop_matrix[5][1], prop_matrix[5][2],
-            prop_matrix[5][3], prop_matrix[5][4], prop_matrix[5][5])
+    if prop_matrix != [] and debug == 1:
+        print(prop_matrix)
 
     if prop_engi != []:
         if debug == 1:
             print(prop_engi)
-        prop_engi = [
-            prop_engi[0], prop_engi[1], prop_engi[2],
-            prop_engi[6], prop_engi[7], prop_engi[8],
-            prop_engi[3], prop_engi[4], prop_engi[5]
-        ]
-        prop_engi_tuple = tuple(prop_engi)
         scMat_name_engi = scMat_name + '_engi'
      
-    if CTE != []:
-        CTE_tuple = tuple(CTE)
-        if debug == 1:
-            print(CTE_tuple)
+    if CTE != [] and debug == 1:
+        print(CTE_tuple)
     
-    if sheat != []:
-        sheat_tuple = tuple(sheat)
-        if debug == 1:
-            print(sheat_tuple)
+    if sheat != [] and debug == 1:
+        print(sheat_tuple)
     
     if model_name in mdb.models:
         raise ValueError(
