@@ -24,16 +24,15 @@ def VABSMain(
     print(st.strftime("%m-%d-%Y %H:%M:%S"))
 
     if recover_flag == 1:
-        # vabs_input = getVABSInput(
-        #     vabs_inp_name, abq_inp_name, timoshenko_flag, thermal_flag,
-        #     trapeze_flag, vlasov_flag, curve_flag, k, oblique_flag, cos
-        # )
+
         vabs_input = createVABSInputMain(
             abq_inp_name, vabs_inp_name,
             timoshenko_flag, thermal_flag, trapeze_flag, vlasov_flag,
             curve_flag, k, oblique_flag, cos, trans_flag=trans_flag
         )
+
     elif recover_flag == 2:
+
         vabs_input = create_vabs_recovery_input(
             vabs_rec_name, vabs_inp_name2, model_recover,
             u, c, sf, sm, df, dm, gamma, kappa, kappa_p

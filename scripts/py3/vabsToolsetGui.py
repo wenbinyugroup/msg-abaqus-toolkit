@@ -65,23 +65,7 @@ class VABSToolsetGui(AFXToolsetGui):
                       tgt   = LayupsForm(self), 
                       sel   = AFXMode.ID_ACTIVATE)
 
-        # FXVerticalSeparator(p=toolbar_group_1, x=0, y=0, w=0, h=0, pl=2, pr=2, pt=2, pb=2)
-
-        # ic = afxCreateIcon(os.path.join(thisDir, 'sg_1d_small.png'))
-        # AFXToolButton(p     = toolbar_group_1, 
-        #               label = '\tCreate 1D SG', 
-        #               icon  = ic, 
-        #               tgt   = SG1D_v3Form(self), 
-        #               sel   = AFXMode.ID_ACTIVATE)
-
         FXVerticalSeparator(p=toolbar_group_1, x=0, y=0, w=0, h=0, pl=2, pr=2, pt=2, pb=2)
-
-        # ic = afxCreateIcon(os.path.join(thisDir, 'sg_2d_uc_small.png'))
-        # AFXToolButton(p     = toolbar_group_1, 
-        #               label = '\tCreate 2D SG: Unit cell', 
-        #               icon  = ic, 
-        #               tgt   = SG2DV5Form(self), 
-        #               sel   = AFXMode.ID_ACTIVATE)
 
         ic = afxCreateIcon(os.path.join(thisDir, 'sg_2d_laminate_small.png'))
         AFXToolButton(p     = toolbar_group_1, 
@@ -110,38 +94,8 @@ class VABSToolsetGui(AFXToolsetGui):
                       icon  = ic, 
                       tgt   = Node9Form(self), 
                       sel   = AFXMode.ID_ACTIVATE)
-        
-        # FXVerticalSeparator(p=toolbar_group_1, x=0, y=0, w=0, h=0, pl=2, pr=2, pt=2, pb=2)
-
-        # ic = afxCreateIcon(os.path.join(thisDir, 'sg_3d_small.png'))
-        # AFXToolButton(p     = toolbar_group_1, 
-        #               label = '\tCreate 3D SG', 
-        #               icon  = ic, 
-        #               tgt   = SG3DV5Form(self), 
-        #               sel   = AFXMode.ID_ACTIVATE)
 
         FXVerticalSeparator(p=toolbar_group_1, x=0, y=0, w=0, h=0, pl=2, pr=2, pt=2, pb=2)
-
-        # ic = afxCreateIcon(os.path.join(thisDir, 'sc_homo_small.png'))
-        # AFXToolButton(p     = toolbar_group_1, 
-        #               label = '\tHomogenization', 
-        #               icon  = ic, 
-        #               tgt   = HomoForm(self), 
-        #               sel   = AFXMode.ID_ACTIVATE)
-        
-        # ic = afxCreateIcon(os.path.join(thisDir, 'sc_import_k_small.png'))
-        # AFXToolButton(p     = toolbar_group_1, 
-        #               label = '\tImport homogenized properties', 
-        #               icon  = ic, 
-        #               tgt   = MacroForm(self), 
-        #               sel   = AFXMode.ID_ACTIVATE)
-
-        # ic = afxCreateIcon(os.path.join(thisDir, 'sc_dehomo_small.png'))
-        # AFXToolButton(p     = toolbar_group_1, 
-        #               label = '\tDehomogenization', 
-        #               icon  = ic, 
-        #               tgt   = LocalForm(self), 
-        #               sel   = AFXMode.ID_ACTIVATE)
         
         ic = afxCreateIcon(os.path.join(thisDir, 'vabs_small.png'))
         AFXToolButton(p     = toolbar_group_1, 
@@ -156,10 +110,7 @@ class VABSToolsetGui(AFXToolsetGui):
                       icon  = ic, 
                       tgt   = VisualForm(self), 
                       sel   = AFXMode.ID_ACTIVATE)
-                      
-        # FXVerticalSeparator(p=toolbar_group_1, x=0, y=0, w=0, h=0, pl=2, pr=2, pt=2, pb=2)
-        
-        
+
 
     def getKernelInitializationCommand(self):
         

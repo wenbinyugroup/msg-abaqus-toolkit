@@ -1,7 +1,7 @@
 from abaqus import *
 from utils.parseAbaqusInput import *
 from utils.reorgAbaqusInput import *
-from utils.writeSCinput import *
+from sgdataio.swiftcomp import writeSCInput
 import os
 
 def createSCInputMain(

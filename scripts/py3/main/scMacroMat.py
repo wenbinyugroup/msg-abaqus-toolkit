@@ -9,7 +9,7 @@ import time
 from customKernel import CommandRegister, RegisteredList , RegisteredTuple#, RepositorySupport
 from sg.sg_data import *
 from utils.UcheckDehoVisual import *
-from main.Usgmodel_info import *
+from sgdataio.sgmodel import resolve_sgmodel_info as sgmodel_info
 from sgdataio.swiftcomp import read_swiftcomp_homogenized_properties
 
 

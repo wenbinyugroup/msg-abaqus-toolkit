@@ -6,6 +6,22 @@ MSG-Abaqus Toolkit is an **Abaqus/CAE plugin** integrating SwiftComp and VABS fo
 
 Documentation: https://wenbinyugroup.github.io/msg-abaqus-toolkit
 
+## Product Direction
+
+The current project goal is to act as the **Abaqus plugin shell layer** around the MSG workflows, not to remain the long-term home of SG/CS file-format business logic.
+
+For new development, prefer this direction:
+
+- Keep Abaqus/CAE integration here: AFX dialogs, command wiring, model/job export, workflow orchestration, external solver invocation, and visualization hooks.
+- Gradually extract SG/CS data parsing, normalization, format conversion, and solver input/output serialization into reusable libraries such as `sgio`.
+- Avoid adding new standalone Abaqus `.inp` parsing or SG/VABS/SwiftComp file writers here when equivalent logic belongs in the shared I/O layer.
+- When touching an existing mixed-responsibility module, bias changes toward making this repository thinner at the boundary instead of deepening business logic inside the plugin.
+
+The intended end state is:
+
+- `msg-abaqus-toolkit`: Abaqus-specific UI/orchestration shell
+- shared SG/CS I/O library: authoritative implementation of format semantics and conversion
+
 ## First Principles
 
 Use first-principles thinking. Do not assume that I always clearly understand what I want or how to achieve it. Stay cautious and start from the fundamental needs and problems. If the motivation or goal is unclear, stop and discuss it with me.
@@ -28,6 +44,14 @@ The `pyproject.toml` dependencies are for documentation tooling only. The plugin
 
 `scripts/py3/` is the active codebase (Python 3, Abaqus 2023+). `scripts/py2/` is legacy and should not be modified.
 
+Within `scripts/py3/`, responsibilities are now split more explicitly:
+
+- `main/` — Abaqus workflow entry points and high-level orchestration
+- `dialogs/` / `forms/` — AFX GUI definitions and dialog behavior
+- `sg/` — SG geometry/model creation logic
+- `sgdataio/` — current SG-related SwiftComp/VABS data read/write and file parsing; treat this as an extraction target when logic can move into shared libraries
+- `utils/` — shared helpers plus legacy Abaqus `.inp` parsing/reorganization utilities; do not grow this parsing layer unless there is no shared-library path
+
 ### Module Naming Convention
 
 Nearly every feature follows a three-file pattern:
@@ -47,17 +71,25 @@ Nearly every feature follows a three-file pattern:
 ### Analysis Pipeline
 
 ```
-SG Creation (sg1D/2D/3DMain.py)
+SG Creation
+    main/: Abaqus-side SG creation workflows
+    sg/: reusable SG geometry/model builders
     ↓
-Homogenization (scHomoMain.py → scGenInput.py → createSCInputMain.py → writeSCinput.py)
+Homogenization
+    main/: workflow orchestration for CAE and input-file paths
+    sgdataio/swiftcomp.py: SwiftComp input serialization
     ↓  [invokes SwiftComp/VABS externally]
-Import Results (importSCMain.py)
+Result Parsing
+    sgdataio/swiftcomp.py / sgdataio/vabs.py
     ↓
-Macro Properties (scMacroMain.py)
+Macro Property Import
+    main/scMacroMat.py + sgdataio/sgmodel.py
     ↓
-Dehomogenization (scLocalMain.py)
+Dehomogenization
+    main/scLocalMain.py + sgdataio/swiftcomp.py
     ↓
-Visualization (scVisualMain.py)
+Visualization
+    main/scVisualMain.py / main/vabsVisualMain.py
 ```
 
 ### Key Large Files
@@ -72,11 +104,19 @@ Visualization (scVisualMain.py)
 
 - `utilities.py` / `utilities_abq.py` — String formatting and Abaqus-specific helpers
 - `parseAbaqusInput.py` / `readAbaqusInput.py` / `reorgAbaqusInput.py` — Abaqus `.inp` file parsing pipeline
-- `UdetermineNSG.py` / `UdetermineVolume.py` / `Usgmodel_info.py` — SG geometry introspection
+- `UdetermineNSG.py` / `UdetermineVolume.py` — SG geometry introspection
+
+### SG Data I/O
+
+- `sgdataio/swiftcomp.py` — SwiftComp input writing, material serialization, result-file parsing, `.k` property parsing, and `.glb` writing
+- `sgdataio/vabs.py` — VABS input writing, recovery input writing, and VABS result-file parsing
+- `sgdataio/sgmodel.py` — SG model metadata/path resolution shared by localization and macro-property workflows
+
+These modules are still active, but they should be treated as transitional ownership. If the same semantics are being implemented or consolidated in `sgio`, prefer moving toward the shared implementation and leaving only Abaqus-facing adapters here.
 
 ### VABS Parallel Path
 
-`vabsForm/DB/Main.py`, `vabsVisualForm/DB/Main.py`, and `VABSGUI.py` / `vabsCaeMainWindow.py` mirror the SwiftComp flow for VABS integration.
+`vabsForm/DB/Main.py`, `vabsVisualForm/DB/Main.py`, and `VABSGUI.py` / `vabsCaeMainWindow.py` mirror the SwiftComp flow for VABS integration. The VABS file-generation and result-parsing logic lives in `sgdataio/vabs.py`, while `createVABSInputMain.py` and `vabsMain.py` remain the Abaqus-side orchestration layer.
 
 
 ## Code Style Guidelines

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from main.sg2DAirfoil import createAirfoil
+from sg.sg2d_airfoil import createAirfoil
 import sys
 
 project_name = sys.argv[-2]

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import xml.etree.ElementTree as et
-from main.sg2DAirfoil import *
+from sg.sg2d_airfoil import *
 
 def createSGfromFile(project_name, control_file):
     

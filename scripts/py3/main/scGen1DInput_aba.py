@@ -19,7 +19,7 @@ from connectorBehavior import *
 import os
 # import time
 from utils.utilities import *
-from main.UwriteMaterials import *
+from sgdataio.swiftcomp import checkMaterials, writeMaterials
 from sg.sg_data import *
 
 def generate_1DInputFromCAE(model_source, macro_model_dimension, analysis, elem_flag, trans_flag,

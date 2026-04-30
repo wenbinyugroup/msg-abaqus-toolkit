@@ -2,6 +2,8 @@
 
 from __future__ import print_function
 
+import codecs
+import math
 import os
 import shutil
 
@@ -53,6 +55,144 @@ def _read_plain_tensor_data(filename, start_index, extension):
     except Exception:
         print('--! Cannot find .%s file.' % extension)
     return rows
+
+
+def writeVABSInput(
+    vabs_inp,
+    nsg,
+    n_coord,
+    eid_all,
+    eid_lid,
+    e_connt_2d,
+    distr_all,
+    layer_types,
+    materials,
+    timoshenko_flag=0,
+    thermal_flag=0,
+    trapeze_flag=0,
+    vlasov_flag=0,
+    curve_flag=0,
+    ik=[],
+    oblique_flag=0,
+    cos=[],
+):
+    """Write a VABS input file.
+
+    Parameters
+    ----------
+    vabs_inp : str
+        Output VABS input path.
+    nsg : int
+        Structure genome dimension. Present for interface compatibility.
+    n_coord : list[list[float]]
+        Node table ``[nid, x, y, z]``.
+    eid_all : list[int]
+        All element ids.
+    eid_lid : dict[int, int]
+        Mapping from element id to layer id.
+    e_connt_2d : list[list[int]]
+        2D element connectivity rows.
+    distr_all : list[list[float]]
+        Element local-coordinate distributions.
+    layer_types : list[list[float]]
+        Layer-type rows ``[lid, mid, angle]``.
+    materials : dict
+        Material property map.
+    timoshenko_flag : int, optional
+        Timoshenko flag.
+    thermal_flag : int, optional
+        Thermal flag.
+    trapeze_flag : int, optional
+        Trapeze flag.
+    vlasov_flag : int, optional
+        Vlasov flag.
+    curve_flag : int, optional
+        Curved-beam flag.
+    ik : list[float], optional
+        Initial curvature values.
+    oblique_flag : int, optional
+        Oblique cross-section flag.
+    cos : list[float], optional
+        Initial obliqueness values.
+    """
+    del nsg
+
+    with codecs.open(vabs_inp, encoding='utf-8', mode='w') as fout:
+        eid_remaining = list(eid_all)
+        nnode = len(n_coord)
+        nelem = len(e_connt_2d)
+        nmate = len(list(materials.keys()))
+        nlayer = len(layer_types)
+
+        writeFormat(fout, 'dd', [1, nlayer])
+        fout.write('\n')
+
+        writeFormat(fout, 'ddd', [timoshenko_flag, 0, thermal_flag])
+        fout.write('\n')
+
+        writeFormat(
+            fout,
+            'd' * 4,
+            [curve_flag, oblique_flag, trapeze_flag, vlasov_flag],
+        )
+        fout.write('\n')
+
+        if curve_flag == 1:
+            writeFormat(fout, 'EEE', ik[0])
+            fout.write('\n')
+
+        if oblique_flag == 1 and timoshenko_flag == 0:
+            writeFormat(fout, 'EE', cos[0])
+            fout.write('\n')
+
+        writeFormat(fout, 'ddd', [nnode, nelem, nmate])
+        fout.write('\n')
+
+        for node in n_coord:
+            writeFormat(fout, 'dEE', [node[0], node[2], node[3]])
+        fout.write('\n')
+
+        for element in e_connt_2d:
+            writeFormat(fout, 'd' * 10, element)
+        fout.write('\n')
+
+        for distr in distr_all:
+            eid = int(distr[0])
+            lid = eid_lid[eid]
+            eid_remaining.remove(eid)
+            theta_1 = math.degrees(math.atan2(distr[6], distr[5]))
+            if theta_1 < 0:
+                theta_1 += 360.0
+            if theta_1 == 360.0:
+                theta_1 = 0.0
+            writeFormat(fout, 'ddE', [eid, lid, theta_1])
+        if len(eid_remaining) > 0:
+            for eid in eid_remaining:
+                writeFormat(fout, 'ddE', [eid, eid_lid[eid], 0.0])
+        fout.write('\n')
+
+        for layer_type in layer_types:
+            writeFormat(fout, 'ddE', layer_type)
+        fout.write('\n')
+
+        for mid, prop in list(materials.items()):
+            writeFormat(fout, 'dd', [mid, prop['isotropy']])
+            if prop['isotropy'] == 0:
+                writeFormat(fout, 'EE', prop['elastic'][0][2:])
+            elif prop['isotropy'] == 1:
+                writeFormat(fout, 'EEE', prop['elastic'][0][2:5])
+                writeFormat(fout, 'EEE', prop['elastic'][0][5:8])
+                writeFormat(fout, 'EEE', prop['elastic'][0][8:11])
+            elif prop['isotropy'] == 2:
+                writeFormat(fout, 'E' * 6, prop['elastic'][0][2:8])
+                writeFormat(fout, 'E' * 5, prop['elastic'][0][8:13])
+                writeFormat(fout, 'E' * 4, prop['elastic'][0][13:17])
+                writeFormat(fout, 'E' * 3, prop['elastic'][0][17:20])
+                writeFormat(fout, 'E' * 2, prop['elastic'][0][20:22])
+                writeFormat(fout, 'E' * 1, prop['elastic'][0][22:23])
+            writeFormat(fout, 'E', [prop['elastic'][0][1]])
+            fout.write('\n')
+        fout.write('\n')
 
 
 def resolve_vabs_trans_flag(trans_flag, sections, distributions):

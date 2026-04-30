@@ -1,8 +1,7 @@
 from abaqus import *
 from utils.parseAbaqusInput import *
 from utils.reorgAbaqusInput import *
-from utils.writeVABSInput import *
-from sgdataio.vabs import resolve_vabs_trans_flag
+from sgdataio.vabs import resolve_vabs_trans_flag, writeVABSInput
 import os
 
 def createVABSInputMain(

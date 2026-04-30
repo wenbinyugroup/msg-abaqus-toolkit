@@ -2,7 +2,11 @@
 
 from __future__ import print_function
 
+import codecs
 import os
+
+from abaqus import *
+from abaqusConstants import *
 
 from utils.utilities import writeFormat
 
@@ -111,6 +115,270 @@ def _get_skip_lines(macro_model_dimension, ap_flag):
         True: {'1D': [1, 2, 3, 4, 5], '2D': [1, 2, 3, 4], '3D': [1, 2]},
     }
     return skip_line_map[ap_flag][macro_model_dimension]
+
+
+def writeSCInput(
+    sc_inp,
+    nsg,
+    n_coord,
+    eid_all,
+    eid_lid,
+    e_connt_2d,
+    e_connt_3d,
+    distr_all,
+    layer_types,
+    materials,
+    macro_model=3,
+    specific_model=0,
+    analysis=0,
+    elem_flag=0,
+    trans_flag=0,
+    temp_flag=0,
+    bk=[],
+    sk=[],
+    cos=[],
+    w=1,
+):
+    """Write a SwiftComp input file.
+
+    Parameters
+    ----------
+    sc_inp : str
+        Output SwiftComp input path.
+    nsg : int
+        Structure genome dimension.
+    n_coord : list[list[float]]
+        Node table ``[nid, x, y, z]``.
+    eid_all : list[int]
+        All element ids.
+    eid_lid : dict[int, int]
+        Mapping from element id to layer id.
+    e_connt_2d : list[list[int]]
+        2D element connectivity rows.
+    e_connt_3d : list[list[int]]
+        3D element connectivity rows.
+    distr_all : list[list[float]]
+        Element local-coordinate distributions.
+    layer_types : list[list[float]]
+        Layer-type rows ``[lid, mid, angle]``.
+    materials : dict
+        Material property map.
+    macro_model : int, optional
+        Macro model dimension.
+    specific_model : int, optional
+        Specific beam/shell submodel flag.
+    analysis : int, optional
+        Analysis type.
+    elem_flag : int, optional
+        Element flag.
+    trans_flag : int, optional
+        Transformation/orientation flag.
+    temp_flag : int, optional
+        Thermal flag.
+    bk : list[float], optional
+        Beam curvature vector.
+    sk : list[float], optional
+        Shell curvature vector.
+    cos : list[float], optional
+        Initial obliqueness vector.
+    w : float, optional
+        SG volume/area/length weight.
+    """
+    with codecs.open(sc_inp, encoding='utf-8', mode='w') as fout:
+        eid_remaining = list(eid_all)
+        nnode = len(n_coord)
+        nelem = len(e_connt_2d) + len(e_connt_3d)
+        nmate = len(list(materials.keys()))
+        nslave = 0
+        nlayer = len(layer_types)
+
+        if macro_model == 1:
+            writeFormat(fout, 'd', [specific_model])
+            fout.write('\n')
+            writeFormat(fout, 'EEE', bk)
+            fout.write('\n')
+            writeFormat(fout, 'EE', cos)
+            fout.write('\n')
+        elif macro_model == 2:
+            writeFormat(fout, 'd', [specific_model])
+            fout.write('\n')
+            writeFormat(fout, 'EE', sk)
+            fout.write('\n')
+
+        writeFormat(fout, 'd' * 4, [analysis, elem_flag, trans_flag, temp_flag])
+        fout.write('\n')
+        writeFormat(fout, 'd' * 6, [nsg, nnode, nelem, nmate, nslave, nlayer])
+        fout.write('\n')
+
+        if nsg == 1:
+            for node in n_coord:
+                writeFormat(fout, 'dE', [node[0], node[3]])
+        elif nsg == 2:
+            for node in n_coord:
+                writeFormat(fout, 'dEE', [node[0], node[2], node[3]])
+        elif nsg == 3:
+            for node in n_coord:
+                writeFormat(fout, 'dEEE', [node[0], node[1], node[2], node[3]])
+        fout.write('\n')
+
+        for element in e_connt_2d:
+            eid = element[0]
+            row = [eid, eid_lid[eid]] + list(element[1:])
+            writeFormat(fout, 'd' * 11, row)
+        for element in e_connt_3d:
+            eid = element[0]
+            row = [eid, eid_lid[eid]] + list(element[1:])
+            writeFormat(fout, 'd' * 22, row)
+        fout.write('\n')
+
+        if distr_all and len(distr_all) > 0:
+            for distr in distr_all:
+                eid = int(distr[0])
+                if eid in eid_remaining:
+                    eid_remaining.remove(eid)
+                fout.write('{0:10d}'.format(eid))
+                writeFormat(fout, 'E' * 9, distr[1:])
+            fout.write('\n')
+
+        for layer_type in layer_types:
+            writeFormat(fout, 'ddE', layer_type)
+        fout.write('\n')
+
+        for mid, prop in list(materials.items()):
+            writeFormat(fout, 'ddd', [mid, prop['isotropy'], prop['ntemp']])
+            for i in range(prop['ntemp']):
+                elastic = prop['elastic'][i]
+                writeFormat(fout, 'EE', elastic[:2])
+                if prop['isotropy'] == 0:
+                    writeFormat(fout, 'EE', elastic[2:])
+                elif prop['isotropy'] == 1:
+                    writeFormat(fout, 'EEE', elastic[2:5])
+                    writeFormat(fout, 'EEE', elastic[5:8])
+                    writeFormat(fout, 'EEE', elastic[8:11])
+                elif prop['isotropy'] == 2:
+                    writeFormat(fout, 'E' * 6, elastic[2:8])
+                    writeFormat(fout, 'E' * 5, elastic[8:13])
+                    writeFormat(fout, 'E' * 4, elastic[13:17])
+                    writeFormat(fout, 'E' * 3, elastic[17:20])
+                    writeFormat(fout, 'E' * 2, elastic[20:22])
+                    writeFormat(fout, 'E' * 1, elastic[22:23])
+                fout.write('\n')
+            fout.write('\n')
+        fout.write('\n')
+
+        writeFormat(fout, 'E', [w])
+        fout.write('\n')
+
+
+def writeMaterials(matDict, analysis, model_name, file):
+    """Write Abaqus material data in SwiftComp input format.
+
+    Parameters
+    ----------
+    matDict : dict[str, int]
+        Mapping from Abaqus material name to SwiftComp material id.
+    analysis : int
+        Analysis type. ``1`` requires thermal properties.
+    model_name : str
+        Abaqus model name.
+    file : file
+        Open output stream.
+    """
+    ntemp = 1
+    temperature = 0
+    model = mdb.models[model_name]
+    for mat_name, mat_id in matDict.items():
+        mat_type = model.materials[mat_name].elastic.type
+        mp = model.materials[mat_name].elastic.table[0]
+
+        try:
+            model.materials[mat_name].density
+        except Exception:
+            print('density is not defined in material "%s" ' % mat_name)
+            print('default values density = 0.1, temperature = 0 will be used,')
+            print('which will not influence the results if analysis is not temperature related.')
+            model.materials[mat_name].Density(table=((0.0,),))
+        density = model.materials[mat_name].density.table[0][0]
+
+        if analysis == 1:
+            mp1sheat = model.materials[mat_name].specificHeat.table[0]
+            mp1cte = model.materials[mat_name].expansion.table[0]
+            mp1 = list(mp1cte) + list(mp1sheat)
+
+        if mat_type == ISOTROPIC:
+            writeFormat(file, 'ddd', [int(mat_id), 0, ntemp])
+            writeFormat(file, 'EE', [float(temperature), float(density)])
+            writeFormat(file, 'EE', mp[:2])
+            if analysis == 1:
+                writeFormat(file, 'EE', mp1)
+        elif mat_type == ENGINEERING_CONSTANTS:
+            writeFormat(file, 'ddd', [int(mat_id), 1, ntemp])
+            writeFormat(file, 'EE', [float(temperature), float(density)])
+            writeFormat(file, 'EEE', mp[:3])
+            writeFormat(file, 'EEE', mp[6:9])
+            writeFormat(file, 'EEE', mp[3:6])
+            if analysis == 1:
+                writeFormat(file, 'E' * 4, mp1)
+        elif mat_type == ORTHOTROPIC:
+            writeFormat(file, 'ddd', [int(mat_id), 2, ntemp])
+            writeFormat(file, 'EE', [float(temperature), float(density)])
+            writeFormat(file, 'E' * 6, [mp[0], mp[1], mp[3], 0.0, 0.0, 0.0])
+            writeFormat(file, 'E' * 5, [mp[2], mp[4], 0.0, 0.0, 0.0])
+            writeFormat(file, 'E' * 4, [mp[5], 0.0, 0.0, 0.0])
+            writeFormat(file, 'E' * 3, [mp[6], 0.0, 0.0])
+            writeFormat(file, 'E' * 2, [mp[7], 0.0])
+            writeFormat(file, 'E' * 1, [mp[8]])
+            if analysis == 1:
+                writeFormat(file, 'E' * 4, mp1)
+        elif mat_type == ANISOTROPIC:
+            writeFormat(file, 'ddd', [int(mat_id), 2, ntemp])
+            writeFormat(file, 'EE', [float(temperature), float(density)])
+            writeFormat(file, 'E' * 6, [mp[0], mp[1], mp[3], mp[6], mp[10], mp[15]])
+            writeFormat(file, 'E' * 5, [mp[2], mp[4], mp[7], mp[11], mp[16]])
+            writeFormat(file, 'E' * 4, [mp[5], mp[8], mp[12], mp[17]])
+            writeFormat(file, 'E' * 3, [mp[9], mp[13], mp[18]])
+            writeFormat(file, 'E' * 2, [mp[14], mp[19]])
+            writeFormat(file, 'E' * 1, [mp[20]])
+            if analysis == 1:
+                writeFormat(file, 'E' * 7, mp1)
+
+
+def checkMaterials(matDict, analysis, model_name):
+    """Validate materials required for SwiftComp input generation.
+
+    Parameters
+    ----------
+    matDict : dict[str, int]
+        Mapping from Abaqus material name to SwiftComp material id.
+    analysis : int
+        Analysis type. ``1`` requires thermal properties.
+    model_name : str
+        Abaqus model name.
+    """
+    for mat_name, mat_id in matDict.items():
+        del mat_id
+        model = mdb.models[model_name]
+        model.materials[mat_name].elastic.type
+        model.materials[mat_name].elastic.table[0]
+
+        try:
+            model.materials[mat_name].density
+        except Exception:
+            print('density is not defined in material "%s" ' % mat_name)
+            print('default values density = 0.1, temperature = 0 will be used,')
+            print('which will not influence the results if analysis is not temperature related.')
+            model.materials[mat_name].Density(table=((0.0,),))
+
+        if analysis == 1:
+            try:
+                model.materials[mat_name].specificHeat
+            except Exception:
+                raise ValueError('specificHeat is not defined in material \'%s\' ' % mat_name)
+
+            try:
+                model.materials[mat_name].expansion
+            except Exception:
+                raise ValueError('expansion is not defined in material \'%s\' ' % mat_name)
 
 
 def read_swiftcomp_input_mesh(sc_input, macro_model_dimension, ap_flag):

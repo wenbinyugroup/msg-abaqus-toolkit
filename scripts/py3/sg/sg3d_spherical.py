@@ -2,25 +2,40 @@
 
 from __future__ import print_function
 
+"""Spherical 3D Structure Genome generation for Abaqus."""
+
 try:
     from ._runtime import ensure_py3_on_path, ensure_materials_exist, load_cli_config
+    from .helpers import DEFAULT_BLOCK_SIZE, calculate_spherical_geometry
 except ImportError:
     from _runtime import ensure_py3_on_path, ensure_materials_exist, load_cli_config
+    from helpers import DEFAULT_BLOCK_SIZE, calculate_spherical_geometry
 
 ensure_py3_on_path()
 
-from textRepr import *
 from abaqus import *
 from abaqusConstants import *
 from caeModules import *
-import sketch
-from math import *
 from utils import abq_view
 
 
-def _viewport_or_none():
-    """Return the current viewport when running with a GUI."""
-    return abq_view.current_viewport()
+BLOCK_SIZE = DEFAULT_BLOCK_SIZE
+PROFILE_SKETCH_NAME = '__profile__'
+PART_NAMES = {
+    'matrix': 'matrix',
+    'fiber': 'inclusion',
+    'interface': 'interface',
+    'merged': 'inclusionP3',
+}
+SECTION_NAMES = {
+    'matrix': 'Matrix_section',
+    'fiber': 'Inclusion_section',
+    'interface': 'Interphase_section',
+}
+ELEMENT_TYPES = {
+    'Linear': (C3D8, C3D4),
+    'Quadratic': (C3D20, C3D10),
+}
 
 
 def _set_displayed_object_if_possible(displayed_object):
@@ -53,356 +68,383 @@ def _configure_assembly_display(mesh=None, optimizationTasks=None,
         meshTechnique=meshTechnique,
     )
 
-def create3DsphericV5(model_name , fiber_flag,vf_f,interface_flag,t_interface,fiber_matname,matrix_matname,interface_matname,mesh_size,elem_type):
 
-    #fiber_flag=2
-    #vf_f=0.2
-    #interface_flag=2
-    #t_interface=0.0
-    #
-    #modelName='Model-1'
-    #model_name='Model-1'
-    #fiber_matname='inclusion'
-    #matrix_matname='matrix'
-    #interface_matname='interface'
-    #mesh_size=0.1
-    #elem_type = 'Linear'
-    #
-    #mesh_size=0.1
-    #meshSize=mesh_size
-    #mdb.Model(name=model_name, modelType=STANDARD_EXPLICIT)
-    #model = mdb.models[modelName]
-    #
-    ##Define materials and Sections and assign them
-    ##--------------------------------------
-    #
-    #Ef1  = 5.86100000E+10
-    #Ef2  = 1.44900000E+10
-    #Ef3  = 1.44900000E+10
-    #vf12 = 2.50000000E-01
-    #vf13 = 2.50000000E-01
-    #vf23 = 2.47000000E-01
-    #Gf12 = 5.38000000E+09
-    #Gf13 = 5.38000000E+09
-    #Gf23 = 5.80994000E+09
-    #
-    #Em = 3.45000000E+09
-    #vm = 3.70000000E-01
-    #
-    #Ei = 3.45000000E+09
-    #vi = 3.70000000E-01
-    #
-    #
-    #mdb.models[model_name].Material(name=fiber_matname)
-    #mdb.models[model_name].materials[fiber_matname].Elastic(type=ENGINEERING_CONSTANTS, 
-    #    table=((Ef1, Ef2, Ef3, vf12, vf13, vf23, 
-    #    Gf12, Gf13, Gf23), ))
-    ##mdb.models[model_name].materials[fiber_matname].Elastic(table=((Ef, vf),))
-    #
-    #mdb.models[model_name].Material(name=matrix_matname)
-    #mdb.models[model_name].materials[matrix_matname].Elastic(table=((Em, vm),))
-    #
-    #mdb.models[model_name].Material(name=interface_matname)
-    #mdb.models[model_name].materials[interface_matname].Elastic(table=((Ei, vi),))
-    #
-    ##********************************************************
-    #from material import createMaterialFromDataString
-    #
-    #createMaterialFromDataString('Model-1', 'Fiber', '6-13', 
-    #    """{'materialIdentifier': '', 'description': '', 'elastic': {'temperatureDependency': OFF, 'moduli': LONG_TERM, 'noCompression': OFF, 'noTension': OFF, 'dependencies': 0, 'table': ((58610000000.0, 14490000000.0, 14490000000.0, 0.25, 0.25, 0.247, 5380000000.0, 5380000000.0, 5809940000.0),), 'type': ENGINEERING_CONSTANTS}, 'name': 'Fiber'}""")
-    ##: Material 'Fiber' has been copied to the current model.
-    #from material import createMaterialFromDataString
-    #createMaterialFromDataString('Model-1', 'Interface', '6-13', 
-    #    """{'materialIdentifier': '', 'description': '', 'elastic': {'temperatureDependency': OFF, 'moduli': LONG_TERM, 'noCompression': OFF, 'noTension': OFF, 'dependencies': 0, 'table': ((3450000000.0, 0.37),), 'type': ISOTROPIC}, 'name': 'Interface'}""")
-    ##: Material 'Interface' has been copied to the current model.
-    #from material import createMaterialFromDataString
-    #createMaterialFromDataString('Model-1', 'Matrix', '6-13', 
-    #    """{'materialIdentifier': '', 'description': '', 'elastic': {'temperatureDependency': OFF, 'moduli': LONG_TERM, 'noCompression': OFF, 'noTension': OFF, 'dependencies': 0, 'table': ((3450000000.0, 0.37),), 'type': ISOTROPIC}, 'name': 'Matrix'}""")
-    ##: Material 'Matrix' has been copied to the current model.
-    ##********************************************************
-    
-    
-    
-    #---------------------------------------------------------
-    part_name=['matrix','inclusion','interface']
-    part3DName='inclusionP3'
-    
-    fiber_setname='Inclusion_section'
-    matrix_setname='Matrix_section'
-    interface_setname='Interphase_section'
-    
-    partsobj=mdb.models[model_name].parts
-#    while part3DName in partsobj.keys():
-#        print 'The partName has existed, "partName_new" will be created.'
-#        part3DName=part3DName+ '_new'
-#        print part3DName
-#        for i in range(0,3):
-#            part_name[i] = part_name[i] + '_new'
-#            print part_name[i]
-    
-    print('#-------part_name  %s---------------------------'  % part3DName)
-    #------------------------------------------------------------------------------------
-    blockSize = 1.
-    quarterSize = 1./2*blockSize
-    
-    
-    mesh_size=0.1
-    meshSize=mesh_size
-    if elem_type == 'Linear':
-        elementType1 = C3D8
-        elementType2 = C3D4
-        
-        
-    elif elem_type == 'Quadratic':
-        elementType1 = C3D20
-        elementType2 = C3D10
-        
-          
-    #-------------------------------
-    
-    totalVolume= blockSize*blockSize*blockSize
-    
-    if  fiber_flag==1 : #vf_f is volume fraction  of the fiber
-        vof_fiber=vf_f
-        fiberRadius= blockSize*pow(3*vof_fiber/4/pi, 1.0/3.0) 
-    elif  fiber_flag==2 :  #vf_f is radius of the fiber
-        fiberRadius=vf_f
-        vof_fiber=4.0/3.0*pi*fiberRadius**3
-    
-    try: 
-        if  interface_flag==1 : #t_interface is volume fraction of the interface
-            vof_interface=t_interface
-            interfaceRadius= blockSize*pow(3*(vof_fiber+vof_interface)/4/pi, 1.0/3.0) 
-                
-        elif  interface_flag==2 :  #t_interface is thickness of the interface
-            interfaceRadius=fiberRadius+t_interface
-            vof_interface= 4.0/3.0*pi*(interfaceRadius**3-fiberRadius**3)
-            
-            
-        if interfaceRadius >=  blockSize/2.0 :
-            False
-    except:
-        raise ValueError('The volume fraction of inclusion and interphase is out of range. Please adjust the values.') 
-    
-    
-    
-    print('blockSize: %s' %blockSize)
-    print('totalVolume: %s' %totalVolume)    
-    
-    
+def _validate_part_and_section_names(model):
+    """Fail early when the generated names already exist.
+
+    Parameters
+    ----------
+    model : Model
+        Abaqus model object.
+
+    Raises
+    ------
+    ValueError
+        Raised when a generated part or section name already exists.
+    """
+    existing_parts = []
+    for part_name in PART_NAMES.values():
+        if part_name in model.parts.keys():
+            existing_parts.append(part_name)
+
+    existing_sections = []
+    for section_name in SECTION_NAMES.values():
+        if section_name in model.sections.keys():
+            existing_sections.append(section_name)
+
+    if existing_parts:
+        raise ValueError(
+            'Target part names already exist in model "%s": %s'
+            % (model.name, ', '.join(existing_parts))
+        )
+    if existing_sections:
+        raise ValueError(
+            'Target section names already exist in model "%s": %s'
+            % (model.name, ', '.join(existing_sections))
+        )
+
+
+def _resolve_element_codes(elem_type):
+    """Return the Abaqus solid element codes for the requested family.
+
+    Parameters
+    ----------
+    elem_type : str
+        Element family label.
+
+    Returns
+    -------
+    tuple
+        Tuple of primary and fallback element codes.
+
+    Raises
+    ------
+    ValueError
+        Raised when ``elem_type`` is unknown.
+    """
+    try:
+        return ELEMENT_TYPES[elem_type]
+    except KeyError:
+        raise ValueError(
+            'Unsupported element type "%s". Expected one of: %s.'
+            % (elem_type, ', '.join(sorted(ELEMENT_TYPES.keys())))
+        )
+
+
+def _log_geometry(block_size, fiber_radius, vof_fiber, interface_radius=None,
+                  vof_interface=0.0):
+    """Print the derived geometry parameters for Abaqus command logs."""
+    print('blockSize: %s' % block_size)
+    print('totalVolume: %s' % (block_size ** 3))
     print('#---fiber------------------------')
-#    print 'fiber_flag: %s' %fiber_flag
-#    print 'vf_f: %s' %vf_f
-#    print '#----------------------------'
-    print('vof_inclusion: %s' %vof_fiber)
-    print('Inclusion Radius: %s' %fiberRadius)
-    
-    if t_interface>0.0:
-        print('#---interphase-------------------------')
-#        print 'interface_flag: %s' % str(interface_flag)
-#        print 't_interface=: %s' % str(t_interface)
-#        print '#----------------------------'
-        print('vof_interphace: %s' %vof_interface)
-        print('interphase Radius: %s' %interfaceRadius)
-    #--------------------------------------------------------------
-    
-    
+    print('vof_inclusion: %s' % vof_fiber)
+    print('Inclusion Radius: %s' % fiber_radius)
 
-        
-    #----------------------------------------------------------------------
-    #matrix 
-    s = mdb.models[model_name].ConstrainedSketch(name='__profile__', 
-        sheetSize=200.0)
-    g, v, d, c = s.geometry, s.vertices, s.dimensions, s.constraints
-    s.setPrimaryObject(option=STANDALONE)
-    s.rectangle(point1=(-0.5*blockSize, -0.5*blockSize), point2=(0.5*blockSize, 0.5*blockSize))
-    p = mdb.models[model_name].Part(name= part_name[0], dimensionality=THREE_D, 
-        type=DEFORMABLE_BODY)
-    p = mdb.models[model_name].parts[ part_name[0]]
-    p.BaseSolidExtrude(sketch=s, depth=blockSize)
-    s.unsetPrimaryObject()
-    p = mdb.models[model_name].parts[ part_name[0]]
-    _set_displayed_object_if_possible(p)
-    del mdb.models[model_name].sketches['__profile__']
-    
-    mdb.models[model_name].HomogeneousSolidSection(name=matrix_setname, 
-        material=matrix_matname, thickness=None)
-    
-        
-        
-    #--------------------------------------
-    #inclusion    
-    s1 = mdb.models[model_name].ConstrainedSketch(name='__profile__', 
-        sheetSize=20.0)
-    g, v, d, c = s1.geometry, s1.vertices, s1.dimensions, s1.constraints
-    s1.setPrimaryObject(option=STANDALONE)
-    s1.ConstructionLine(point1=(0.0, -10.0), point2=(0.0, 10.0))
-    s1.FixedConstraint(entity=g[2])
-    s1.Line(point1=(0.0, -fiberRadius), point2=(0.0, fiberRadius))
-    s1.VerticalConstraint(entity=g[3], addUndoState=False)
-    s1.ArcByCenterEnds(center=(0.0, 0.0), point1=(0.0, fiberRadius), point2=(0.0, -fiberRadius), 
-        direction=CLOCKWISE)
-    s1.CoincidentConstraint(entity1=v[2], entity2=g[3], addUndoState=False)
-    s1.EqualDistanceConstraint(entity1=v[0], entity2=v[1], midpoint=v[2], 
-        addUndoState=False)
-    p = mdb.models[model_name].Part(name=part_name[1], dimensionality=THREE_D, 
-        type=DEFORMABLE_BODY)
-    p = mdb.models[model_name].parts[part_name[1]]
-    p.BaseSolidRevolve(sketch=s1, angle=360.0, flipRevolveDirection=OFF)
-    s1.unsetPrimaryObject()
-    p = mdb.models[model_name].parts[part_name[1]]
-    _set_displayed_object_if_possible(p)
-    del mdb.models[model_name].sketches['__profile__']
-    _configure_part_display(sectionAssignments=ON, engineeringFeatures=ON,
-                            referenceRepresentation=OFF)
-    
-    
-    mdb.models[model_name].HomogeneousSolidSection(name=fiber_setname, 
-        material=fiber_matname, thickness=None)    
-        
-    
-    #---------------------------------------------------    
-    
-    #--------------------------------------
-    #Interface
-    if t_interface>0:
-        s = mdb.models[model_name].ConstrainedSketch(name='__profile__', sheetSize=20.0)
-        g, v, d, c = s.geometry, s.vertices, s.dimensions, s.constraints
-        s.setPrimaryObject(option=STANDALONE)
-        s.ConstructionLine(point1=(0.0, -10.0), point2=(0.0, 10.0))
-        s.FixedConstraint(entity=g[2])
-        s.Line(point1=(0.0, -interfaceRadius), point2=(0.0, interfaceRadius))
-        s.VerticalConstraint(entity=g[3], addUndoState=False)
-        s.ArcByCenterEnds(center=(0.0, 0.0), point1=(0.0, interfaceRadius), point2=(0.0, -interfaceRadius), 
-            direction=CLOCKWISE)
-        s.CoincidentConstraint(entity1=v[2], entity2=g[3], addUndoState=False)
-        s.EqualDistanceConstraint(entity1=v[0], entity2=v[1], midpoint=v[2], 
-            addUndoState=False)
-        p = mdb.models[model_name].Part(name=part_name[2], dimensionality=THREE_D, 
-            type=DEFORMABLE_BODY)
-        p = mdb.models[model_name].parts[part_name[2]]
-        p.BaseSolidRevolve(sketch=s, angle=360.0, flipRevolveDirection=OFF)
-        s.unsetPrimaryObject()
-        p = mdb.models[model_name].parts[part_name[2]]
-        _set_displayed_object_if_possible(p)
-        del mdb.models[model_name].sketches['__profile__']
-        
-        _configure_part_display(sectionAssignments=ON, engineeringFeatures=ON,
-                                referenceRepresentation=OFF)
-        
-        mdb.models[model_name].HomogeneousSolidSection(name=interface_setname, 
-            material=interface_matname, thickness=None)
-    
-        
-    #--------------------------------------------------------------------------
-    
-    a = mdb.models[model_name].rootAssembly
-    _set_displayed_object_if_possible(a)
-    _configure_assembly_display(optimizationTasks=OFF,
-                                geometricRestrictions=OFF,
-                                stopConditions=OFF)
-    a = mdb.models[model_name].rootAssembly
-    a.DatumCsysByDefault(CARTESIAN)
-    p = mdb.models[model_name].parts[part_name[0]]
-    a.Instance(name=part_name[0]+'-1', part=p, dependent=ON)
-    a = mdb.models[model_name].rootAssembly
-    p = mdb.models[model_name].parts[part_name[1]]
-    a.Instance(name=part_name[1]+'-1', part=p, dependent=ON)
-    
-    if t_interface>0:
-        a = mdb.models[model_name].rootAssembly
-        p = mdb.models[model_name].parts[part_name[2]]
-        a.Instance(name=part_name[2]+'-1', part=p, dependent=ON)
-    
-    a.translate(instanceList=(part_name[0]+'-1', ), vector=(0.0, 0.0, -0.5*blockSize))
-    a1 = mdb.models[model_name].rootAssembly
-    
-    if t_interface>0:
-        a1.InstanceFromBooleanMerge(name=part3DName, 
-                                    instances=(a1.instances[part_name[0]+'-1'], 
-                                    a1.instances[part_name[1]+'-1'],
-                                    a1.instances[part_name[2]+'-1'], ), 
-                                    keepIntersections=ON, 
-                                    originalInstances=SUPPRESS, domain=GEOMETRY)
-        for i in range(0,3):
-            del a1.features[part_name[i]+'-1']
-            del mdb.models[model_name].parts[part_name[i]]
-    
-    elif t_interface==0:
-        a1.InstanceFromBooleanMerge(name=part3DName, 
-                                    instances=(a1.instances[part_name[0]+'-1'], 
-                                    a1.instances[part_name[1]+'-1'],
-                                     ), 
-                                    keepIntersections=ON, 
-                                    originalInstances=SUPPRESS, domain=GEOMETRY)
-        for i in range(0,2):
-            del a1.features[part_name[i]+'-1']
-            del mdb.models[model_name].parts[part_name[i]]
-    
-    elif t_interface<0:
-        raise ValueError( 'Interphase thickness should be equal or larger than zero.' )
-    #
-    ##------------------------------------------
-    p = mdb.models[model_name].parts[part3DName]
-    c = p.cells
-    cells = c.findAt(((blockSize/2, 0.0,0.0),))
-    region = p.Set(cells=cells, name=matrix_setname)
-    p.SectionAssignment(region=region, sectionName=matrix_setname, offset=0.0, 
-        offsetType=MIDDLE_SURFACE, offsetField='', 
-        thicknessAssignment=FROM_SECTION)
-    
-    session.journalOptions.setValues(replayGeometry=COORDINATE,recoverGeometry=COORDINATE)
-    
-    cells = c.findAt(((0, 0, 0),))
-    cells
-    region = p.Set(cells=cells, name=fiber_setname)
-    p.SectionAssignment(region=region, sectionName=fiber_setname, offset=0.0, 
-        offsetType=MIDDLE_SURFACE, offsetField='', 
-        thicknessAssignment=FROM_SECTION)
-    
-    if t_interface>0.0 :
-        Rr=(fiberRadius+interfaceRadius)/2.0
-        cells = c.findAt(((Rr, 0.0,0.0),))
-        cells
-        region = p.Set(cells=cells, name=interface_setname)
-        p.SectionAssignment(region=region, sectionName=interface_setname, offset=0.0, 
-            offsetType=MIDDLE_SURFACE, offsetField='', 
-            thicknessAssignment=FROM_SECTION)   
-        
-        
-    
-      
-    
-    #------------------------------------------------
-    #mesh
-    p = mdb.models[model_name].parts[part3DName]
-    c = p.cells
-    pickedRegions = c
-    p.setMeshControls(regions=pickedRegions, elemShape=TET, technique=FREE)
-    elemType1 = mesh.ElemType(elemCode=elementType1)
-    elemType2 = mesh.ElemType(elemCode=elementType2)
-    p = mdb.models[model_name].parts[part3DName]
-    c = p.cells
-    cells = c
-    pickedRegions =(cells, )
-    p.setElementType(regions=pickedRegions, elemTypes=(elemType1, elemType2))
-    p = mdb.models[model_name].parts[part3DName]
-    p.seedPart(size=mesh_size, deviationFactor=0.1, minSizeFactor=0.1)
-    p = mdb.models[model_name].parts[part3DName]
-    p.generateMesh()
-    #
-    
-    a = mdb.models[model_name].rootAssembly
-    del a.features[part3DName+'-1']
-    
-    #-----------------------------------------------------------------------
+    if interface_radius is not None:
+        print('#---interphase-------------------------')
+        print('vof_interphace: %s' % vof_interface)
+        print('interphase Radius: %s' % interface_radius)
+
+
+def _create_box_part(model, part_name, block_size):
+    """Create the matrix cube part."""
+    sketch_object = model.ConstrainedSketch(
+        name=PROFILE_SKETCH_NAME,
+        sheetSize=200.0,
+    )
+    sketch_object.setPrimaryObject(option=STANDALONE)
+
+    try:
+        sketch_object.rectangle(
+            point1=(-0.5 * block_size, -0.5 * block_size),
+            point2=(0.5 * block_size, 0.5 * block_size),
+        )
+        part = model.Part(
+            name=part_name,
+            dimensionality=THREE_D,
+            type=DEFORMABLE_BODY,
+        )
+        part.BaseSolidExtrude(sketch=sketch_object, depth=block_size)
+    finally:
+        sketch_object.unsetPrimaryObject()
+        del model.sketches[PROFILE_SKETCH_NAME]
+
+    _set_displayed_object_if_possible(part)
+    return part
+
+
+def _create_sphere_part(model, part_name, radius):
+    """Create a spherical solid by revolving a semicircle."""
+    sketch_object = model.ConstrainedSketch(
+        name=PROFILE_SKETCH_NAME,
+        sheetSize=20.0,
+    )
+    geometry = sketch_object.geometry
+    vertices = sketch_object.vertices
+    sketch_object.setPrimaryObject(option=STANDALONE)
+
+    try:
+        sketch_object.ConstructionLine(point1=(0.0, -10.0), point2=(0.0, 10.0))
+        sketch_object.FixedConstraint(entity=geometry[2])
+        sketch_object.Line(point1=(0.0, -radius), point2=(0.0, radius))
+        sketch_object.VerticalConstraint(entity=geometry[3], addUndoState=False)
+        sketch_object.ArcByCenterEnds(
+            center=(0.0, 0.0),
+            point1=(0.0, radius),
+            point2=(0.0, -radius),
+            direction=CLOCKWISE,
+        )
+        sketch_object.CoincidentConstraint(
+            entity1=vertices[2],
+            entity2=geometry[3],
+            addUndoState=False,
+        )
+        sketch_object.EqualDistanceConstraint(
+            entity1=vertices[0],
+            entity2=vertices[1],
+            midpoint=vertices[2],
+            addUndoState=False,
+        )
+        part = model.Part(
+            name=part_name,
+            dimensionality=THREE_D,
+            type=DEFORMABLE_BODY,
+        )
+        part.BaseSolidRevolve(
+            sketch=sketch_object,
+            angle=360.0,
+            flipRevolveDirection=OFF,
+        )
+    finally:
+        sketch_object.unsetPrimaryObject()
+        del model.sketches[PROFILE_SKETCH_NAME]
+
+    _set_displayed_object_if_possible(part)
+    _configure_part_display(
+        sectionAssignments=ON,
+        engineeringFeatures=ON,
+        referenceRepresentation=OFF,
+    )
+    return part
+
+
+def _create_section(model, section_name, material_name):
+    """Create a homogeneous solid section."""
+    model.HomogeneousSolidSection(
+        name=section_name,
+        material=material_name,
+        thickness=None,
+    )
+
+
+def _build_source_parts(model, fiber_radius, interface_radius, fiber_matname,
+                        matrix_matname, interface_matname):
+    """Create the temporary geometry parts and sections."""
+    _create_box_part(model, PART_NAMES['matrix'], BLOCK_SIZE)
+    _create_section(model, SECTION_NAMES['matrix'], matrix_matname)
+
+    _create_sphere_part(model, PART_NAMES['fiber'], fiber_radius)
+    _create_section(model, SECTION_NAMES['fiber'], fiber_matname)
+
+    part_names = [PART_NAMES['matrix'], PART_NAMES['fiber']]
+    if interface_radius is not None:
+        _create_sphere_part(model, PART_NAMES['interface'], interface_radius)
+        _create_section(model, SECTION_NAMES['interface'], interface_matname)
+        part_names.append(PART_NAMES['interface'])
+
+    return part_names
+
+
+def _merge_source_parts(model, part_names, block_size):
+    """Merge the cube, fiber, and optional interface into one SG part."""
+    assembly = model.rootAssembly
+    _set_displayed_object_if_possible(assembly)
+    _configure_assembly_display(
+        optimizationTasks=OFF,
+        geometricRestrictions=OFF,
+        stopConditions=OFF,
+    )
+    assembly.DatumCsysByDefault(CARTESIAN)
+
+    for part_name in part_names:
+        assembly.Instance(
+            name=part_name + '-1',
+            part=model.parts[part_name],
+            dependent=ON,
+        )
+
+    assembly.translate(
+        instanceList=(PART_NAMES['matrix'] + '-1',),
+        vector=(0.0, 0.0, -0.5 * block_size),
+    )
+
+    instance_names = tuple(part_name + '-1' for part_name in part_names)
+    assembly.InstanceFromBooleanMerge(
+        name=PART_NAMES['merged'],
+        instances=tuple(assembly.instances[name] for name in instance_names),
+        keepIntersections=ON,
+        originalInstances=SUPPRESS,
+        domain=GEOMETRY,
+    )
+
+    for part_name in part_names:
+        del assembly.features[part_name + '-1']
+        del model.parts[part_name]
+
+    return model.parts[PART_NAMES['merged']]
+
+
+def _assign_section_to_cell(part, point, set_name, section_name):
+    """Assign a section to a single cell found from an interior point."""
+    cells = part.cells.findAt((point,))
+    region = part.Set(cells=cells, name=set_name)
+    part.SectionAssignment(
+        region=region,
+        sectionName=section_name,
+        offset=0.0,
+        offsetType=MIDDLE_SURFACE,
+        offsetField='',
+        thicknessAssignment=FROM_SECTION,
+    )
+
+
+def _assign_sections(part, fiber_radius, interface_radius, block_size):
+    """Assign matrix, inclusion, and optional interphase sections."""
+    session.journalOptions.setValues(
+        replayGeometry=COORDINATE,
+        recoverGeometry=COORDINATE,
+    )
+
+    outer_radius = fiber_radius
+    if interface_radius is not None:
+        outer_radius = interface_radius
+
+    matrix_probe = ((outer_radius + block_size / 2.0) / 2.0, 0.0, 0.0)
+    _assign_section_to_cell(
+        part,
+        matrix_probe,
+        SECTION_NAMES['matrix'],
+        SECTION_NAMES['matrix'],
+    )
+    _assign_section_to_cell(
+        part,
+        (0.0, 0.0, 0.0),
+        SECTION_NAMES['fiber'],
+        SECTION_NAMES['fiber'],
+    )
+
+    if interface_radius is not None:
+        interface_probe = ((fiber_radius + interface_radius) / 2.0, 0.0, 0.0)
+        _assign_section_to_cell(
+            part,
+            interface_probe,
+            SECTION_NAMES['interface'],
+            SECTION_NAMES['interface'],
+        )
+
+
+def _mesh_part(part, mesh_size, element_codes):
+    """Mesh the merged SG part."""
+    if mesh_size <= 0.0:
+        raise ValueError('Mesh size must be positive.')
+
+    part.setMeshControls(regions=part.cells, elemShape=TET, technique=FREE)
+    elem_types = tuple(mesh.ElemType(elemCode=code) for code in element_codes)
+    part.setElementType(regions=(part.cells,), elemTypes=elem_types)
+    part.seedPart(size=mesh_size, deviationFactor=0.1, minSizeFactor=0.1)
+    part.generateMesh()
+
+
+def _finalize_display(model, part):
+    """Show the meshed SG part and hide the temporary assembly feature."""
+    assembly = model.rootAssembly
+    del assembly.features[PART_NAMES['merged'] + '-1']
+
     _configure_assembly_display(mesh=ON, meshTechnique=ON)
-    p = mdb.models[model_name].parts[part3DName]
-    _set_displayed_object_if_possible(p)
-    _configure_part_display(sectionAssignments=OFF, engineeringFeatures=OFF,
-                            mesh=ON, meshTechnique=ON)
-    
-    return p
+    _set_displayed_object_if_possible(part)
+    _configure_part_display(
+        sectionAssignments=OFF,
+        engineeringFeatures=OFF,
+        mesh=ON,
+        meshTechnique=ON,
+    )
+
+
+def create3DsphericV5(model_name, fiber_flag, vf_f, interface_flag,
+                      t_interface, fiber_matname, matrix_matname,
+                      interface_matname, mesh_size, elem_type):
+    """Create a spherical 3D Structure Genome part.
+
+    Parameters
+    ----------
+    model_name : str
+        Abaqus model name.
+    fiber_flag : int
+        Fiber input mode selector. ``1`` means volume fraction, ``2`` means
+        radius.
+    vf_f : float
+        Inclusion volume fraction or radius, depending on ``fiber_flag``.
+    interface_flag : int
+        Interface input mode selector. ``1`` means volume fraction, ``2`` means
+        thickness.
+    t_interface : float
+        Interface volume fraction or thickness, depending on
+        ``interface_flag``.
+    fiber_matname : str
+        Inclusion material name.
+    matrix_matname : str
+        Matrix material name.
+    interface_matname : str
+        Interphase material name.
+    mesh_size : float
+        Target mesh seed size.
+    elem_type : str
+        Element family label.
+
+    Returns
+    -------
+    Part
+        Abaqus part containing the merged and meshed SG geometry.
+    """
+    model = mdb.models[model_name]
+    _validate_part_and_section_names(model)
+
+    element_codes = _resolve_element_codes(elem_type)
+    geometry = calculate_spherical_geometry(
+        fiber_flag,
+        vf_f,
+        interface_flag,
+        t_interface,
+        BLOCK_SIZE,
+    )
+    fiber_radius = geometry['fiber_radius']
+    vof_fiber = geometry['fiber_volume_fraction']
+    interface_radius = geometry['interface_radius']
+    vof_interface = geometry['interface_volume_fraction']
+
+    print('#-------part_name  %s---------------------------' % PART_NAMES['merged'])
+    _log_geometry(
+        BLOCK_SIZE,
+        fiber_radius,
+        vof_fiber,
+        interface_radius=interface_radius,
+        vof_interface=vof_interface,
+    )
+
+    part_names = _build_source_parts(
+        model,
+        fiber_radius,
+        interface_radius,
+        fiber_matname,
+        matrix_matname,
+        interface_matname,
+    )
+    part = _merge_source_parts(model, part_names, BLOCK_SIZE)
+    _assign_sections(part, fiber_radius, interface_radius, BLOCK_SIZE)
+    _mesh_part(part, mesh_size, element_codes)
+    _finalize_display(model, part)
+    return part
+
 
 DEFAULT_CONFIG = {
     'model_name': 'Model-1',
@@ -419,7 +461,18 @@ DEFAULT_CONFIG = {
 
 
 def main(config=None):
-    """Build a spherical 3D SG outside the GUI."""
+    """Build a spherical 3D SG outside the GUI.
+
+    Parameters
+    ----------
+    config : dict, optional
+        Command-line configuration dictionary.
+
+    Returns
+    -------
+    Part
+        Abaqus part containing the merged and meshed SG geometry.
+    """
     if config is None:
         config = load_cli_config(DEFAULT_CONFIG)
 
