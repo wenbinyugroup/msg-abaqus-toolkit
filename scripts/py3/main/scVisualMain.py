@@ -16,462 +16,21 @@ from utils import abq_view
 from utils.UcheckDehoVisual import *
 from sgdataio import swiftcomp as scio
 import os.path
-import os, shutil
-import sys
-
-
-TENSOR_INVARIANTS = (
-    MISES, TRESCA, PRESS, INV3,
-    MAX_PRINCIPAL, MID_PRINCIPAL, MIN_PRINCIPAL,
+from main.visualization_common import (
+    add_displacement_field,
+    add_element_groups,
+    add_tensor_fields,
+    configure_visualization_viewports,
+    create_dummy_material,
+    create_instance_and_assign_sections,
+    create_part_with_nodes,
+    create_section_category,
+    create_sections,
+    create_step_and_frame,
+    create_visualization_odb,
+    reopen_visualization_odb,
+    resolve_project_location,
 )
-
-
-def _get_skip_lines(macro_model_dimension, ap_flag):
-    """Return header lines skipped in a SwiftComp input file.
-
-    Parameters
-    ----------
-    macro_model_dimension : str
-        Macro model dimension label such as ``'1D'`` or ``'2D'``.
-    ap_flag : bool
-        Flag indicating whether the aperiodic header is present.
-
-    Returns
-    -------
-    list[int]
-        Line numbers skipped before SG metadata is read.
-    """
-    skip_line_map = {
-        False: {'1D': [1, 2, 3, 4], '2D': [1, 2, 3], '3D': [1]},
-        True: {'1D': [1, 2, 3, 4, 5], '2D': [1, 2, 3, 4], '3D': [1, 2]},
-    }
-    return skip_line_map[ap_flag][macro_model_dimension]
-
-
-def _iter_non_empty_tokens(filename):
-    """Yield tokenized non-empty lines from a text file.
-
-    Parameters
-    ----------
-    filename : str
-        Path to the source file.
-
-    Yields
-    ------
-    list[str]
-        Tokens parsed from one non-empty line.
-    """
-    with open(filename, 'r') as fin:
-        for line in fin:
-            line = line.strip()
-            if line == '\n' or line == '':
-                continue
-            yield line.split()
-
-
-def _read_displacement_results(filename):
-    """Read nodal displacement output from a ``.u`` file.
-
-    Parameters
-    ----------
-    filename : str
-        Path to the displacement result file.
-
-    Returns
-    -------
-    tuple[list[int], list[tuple[float, float, float]]]
-        Node labels and displacement vectors.
-    """
-    node_label = []
-    u_data = []
-
-    try:
-        for line in _iter_non_empty_tokens(filename):
-            node_label.append(int(line[0]))
-            u_data.append((float(line[1]), float(line[2]), float(line[3])))
-        print('--> Find .u file.')
-    except Exception:
-        print('--! Cannot find .u file.')
-
-    return node_label, u_data
-
-
-def _read_tensor_results(filename, nsg, extension):
-    """Read strain and stress tensors from a SwiftComp result file.
-
-    Parameters
-    ----------
-    filename : str
-        Path to the tensor result file.
-    nsg : int
-        Structure genome dimension used to offset result columns.
-    extension : str
-        File extension label used in status messages.
-
-    Returns
-    -------
-    tuple[list[tuple[float, ...]], list[tuple[float, ...]]]
-        Strain and stress tensors parsed from the file.
-    """
-    strain_data = []
-    stress_data = []
-
-    try:
-        for line in _iter_non_empty_tokens(filename):
-            strain_data.append(tuple(float(i) for i in line[nsg:nsg + 6]))
-            stress_data.append(tuple(float(i) for i in line[nsg + 6:nsg + 12]))
-        print('--> Find .%s file.' % extension)
-    except Exception:
-        print('--! Cannot find .%s file.' % extension)
-
-    return strain_data, stress_data
-
-
-def _create_dummy_material(odb_vis, log_message=None):
-    """Create the shared elastic material used for visualization.
-
-    Parameters
-    ----------
-    odb_vis : Odb
-        Target output database.
-    log_message : str, optional
-        Message printed before creating the material.
-
-    Returns
-    -------
-    str
-        Material name created in the ODB.
-    """
-    if log_message:
-        print(log_message)
-
-    material_name = 'Elastic material'
-    material = odb_vis.Material(name=material_name)
-    material.Elastic(
-        type=ISOTROPIC,
-        temperatureDependency=OFF,
-        dependencies=0,
-        noCompression=OFF,
-        noTension=OFF,
-        moduli=LONG_TERM,
-        table=((12000, 0.3),),
-    )
-    return material_name
-
-
-def _create_sections(odb_vis, elem_sectn, material_name, section_name_g, log_message=None):
-    """Create one homogeneous section per material section label.
-
-    Parameters
-    ----------
-    odb_vis : Odb
-        Target output database.
-    elem_sectn : dict
-        Mapping from section id to element labels.
-    material_name : str
-        Name of the material assigned to each section.
-    section_name_g : str
-        Shared section name prefix.
-    log_message : str, optional
-        Message printed before creating sections.
-
-    Returns
-    -------
-    dict
-        Created Abaqus sections keyed by section id.
-    """
-    if log_message:
-        print(log_message)
-
-    abq_section = {}
-    for k in list(elem_sectn.keys()):
-        section_name = section_name_g + '-' + k
-        abq_section[k] = odb_vis.HomogeneousSolidSection(
-            name=section_name, material=material_name
-        )
-    return abq_section
-
-
-def _create_part_with_nodes(odb_vis, node_coord, part_name='Part-1',
-                            embedded_space=THREE_D, log_message=None,
-                            node_log_message=None):
-    """Create a deformable part and import nodal coordinates.
-
-    Parameters
-    ----------
-    odb_vis : Odb
-        Target output database.
-    node_coord : list[tuple]
-        Nodal coordinates including node labels.
-    part_name : str, optional
-        Name of the created part.
-    embedded_space : SymbolicConstant, optional
-        Embedded space used when creating the part.
-    log_message : str, optional
-        Message printed before creating the part.
-    node_log_message : str, optional
-        Message printed before importing nodes.
-
-    Returns
-    -------
-    OdbPart
-        Created ODB part.
-    """
-    if log_message:
-        print(log_message)
-
-    part = odb_vis.Part(
-        name=part_name, embeddedSpace=embedded_space, type=DEFORMABLE_BODY
-    )
-
-    if node_log_message:
-        print(node_log_message)
-
-    part.addNodes(nodeData=tuple(node_coord), nodeSetName='nSet-1')
-    odb_vis.save()
-    return part
-
-
-def _add_element_groups(odb_vis, part, element_groups, log_message=None):
-    """Import element groups into an ODB part.
-
-    Parameters
-    ----------
-    odb_vis : Odb
-        Target output database.
-    part : OdbPart
-        ODB part receiving the elements.
-    element_groups : list[tuple]
-        Tuples of ``(connectivity, element_type, set_name, section_category)``.
-    log_message : str, optional
-        Message printed before importing elements.
-    """
-    if log_message:
-        print(log_message)
-
-    for connectivity, element_type, element_set_name, section_category in element_groups:
-        if connectivity == []:
-            continue
-
-        kwargs = {
-            'elementData': tuple(connectivity),
-            'type': element_type,
-            'elementSetName': element_set_name,
-        }
-        if section_category is not None:
-            kwargs['sectionCategory'] = section_category
-        part.addElements(**kwargs)
-
-    odb_vis.save()
-
-
-def _create_instance_and_assign_sections(odb_vis, part, elem_sectn, abq_section,
-                                         section_name_g, instance_name='Part-1-1',
-                                         log_message=None):
-    """Create the assembly instance and assign element sections.
-
-    Parameters
-    ----------
-    odb_vis : Odb
-        Target output database.
-    part : OdbPart
-        ODB part instantiated in the root assembly.
-    elem_sectn : dict
-        Mapping from section id to element labels.
-    abq_section : dict
-        Created Abaqus sections keyed by section id.
-    section_name_g : str
-        Shared section name prefix.
-    instance_name : str, optional
-        Name of the created instance.
-    log_message : str, optional
-        Message printed before creating the instance.
-
-    Returns
-    -------
-    OdbInstance
-        Created root assembly instance.
-    """
-    if log_message:
-        print(log_message)
-
-    instance = odb_vis.rootAssembly.Instance(name=instance_name, object=part)
-    for k in list(elem_sectn.keys()):
-        section_name = section_name_g + ' - ' + k
-        elem_set = odb_vis.rootAssembly.instances[instance_name].ElementSetFromElementLabels(
-            name=section_name, elementLabels=tuple(elem_sectn[k])
-        )
-        instance.assignSection(region=elem_set, section=abq_section[k])
-
-    odb_vis.save()
-    return instance
-
-
-def _create_step_and_frame(odb_vis, log_message=None):
-    """Create the single visualization step and frame.
-
-    Parameters
-    ----------
-    odb_vis : Odb
-        Target output database.
-    log_message : str, optional
-        Message printed before creating the step.
-
-    Returns
-    -------
-    tuple
-        Created ``(step, frame)`` pair.
-    """
-    if log_message:
-        print(log_message)
-
-    step = odb_vis.Step(name='Step-1', description='', domain=TIME, timePeriod=1.0)
-    frame = step.Frame(incrementNumber=1, frameValue=0.1, description='')
-    return step, frame
-
-
-def _add_displacement_field(odb_vis, frame, step, instance, node_label, u_data,
-                            log_message=None):
-    """Import the displacement field when present.
-
-    Parameters
-    ----------
-    odb_vis : Odb
-        Target output database.
-    frame : OdbFrame
-        Frame receiving the field output.
-    step : OdbStep
-        Visualization step used to mark the default deformed field.
-    instance : OdbInstance
-        Instance receiving the field data.
-    node_label : list[int]
-        Node labels in Abaqus order.
-    u_data : list[tuple[float, float, float]]
-        Displacement vectors.
-    log_message : str, optional
-        Message printed before importing the field.
-    """
-    if u_data == []:
-        return
-
-    if log_message:
-        print(log_message)
-
-    u_field = frame.FieldOutput(
-        name='U',
-        description='Displacements.',
-        type=VECTOR,
-        validInvariants=(MAGNITUDE,),
-    )
-    u_field.addData(
-        position=NODAL,
-        instance=instance,
-        labels=tuple(node_label),
-        data=tuple(u_data),
-    )
-    step.setDefaultDeformedField(u_field)
-    odb_vis.save()
-
-
-def _tensor_component_labels(field_name):
-    """Build tensor component labels for one field output name.
-
-    Parameters
-    ----------
-    field_name : str
-        Abaqus field output name such as ``'EN'`` or ``'SNM'``.
-
-    Returns
-    -------
-    tuple[str, str, str, str, str, str]
-        Tensor component labels in Abaqus naming format.
-    """
-    shear_prefix = '2' if field_name.startswith('E') else ''
-    return (
-        field_name + '11',
-        field_name + '22',
-        field_name + '33',
-        shear_prefix + field_name + '23',
-        shear_prefix + field_name + '13',
-        shear_prefix + field_name + '12',
-    )
-
-
-def _add_tensor_field(odb_vis, frame, instance, labels, data, field_name,
-                      description, position, log_message=None):
-    """Import one tensor field output when data is available.
-
-    Parameters
-    ----------
-    odb_vis : Odb
-        Target output database.
-    frame : OdbFrame
-        Frame receiving the field output.
-    instance : OdbInstance
-        Instance receiving the field data.
-    labels : list[int]
-        Element labels matching the data order.
-    data : list[tuple[float, ...]]
-        Tensor values.
-    field_name : str
-        Abaqus field output name.
-    description : str
-        Field output description stored in the ODB.
-    position : SymbolicConstant
-        Output position such as ``ELEMENT_NODAL``.
-    log_message : str, optional
-        Message printed before importing the field.
-    """
-    if data == []:
-        return
-
-    if log_message:
-        print(log_message)
-
-    field = frame.FieldOutput(
-        name=field_name,
-        description=description,
-        type=TENSOR_3D_FULL,
-        componentLabels=_tensor_component_labels(field_name),
-        validInvariants=TENSOR_INVARIANTS,
-    )
-    field.addData(
-        position=position,
-        instance=instance,
-        labels=tuple(labels),
-        data=tuple(data),
-    )
-    odb_vis.save()
-
-
-def _add_tensor_fields(odb_vis, frame, instance, labels, field_specs):
-    """Import multiple tensor fields defined by a small configuration list.
-
-    Parameters
-    ----------
-    odb_vis : Odb
-        Target output database.
-    frame : OdbFrame
-        Frame receiving the field outputs.
-    instance : OdbInstance
-        Instance receiving the field data.
-    labels : list[int]
-        Element labels matching the data order.
-    field_specs : list[dict]
-        Field definitions containing data, name, description, and position.
-    """
-    for field_spec in field_specs:
-        _add_tensor_field(
-            odb_vis=odb_vis,
-            frame=frame,
-            instance=instance,
-            labels=labels,
-            data=field_spec['data'],
-            field_name=field_spec['name'],
-            description=field_spec['description'],
-            position=field_spec['position'],
-            log_message=field_spec.get('log_message'),
-        )
 
 # ==============================================================================
 #
@@ -492,28 +51,10 @@ def visualization(macro_model, ap_flag, sc_input):
     # =======================================================================
     # Read data from files
     # =======================================================================
-    
-    
-    u_filename   = sc_input + r'.u'
-    sg_filename  = sc_input + r'.sg'
-    sn_filename  = sc_input + r'.sn'
-    sgm_filename = sc_input + r'.sgm'
-    snm_filename = sc_input + r'.snm'
-    
-#    sc_input_temp = sc_input.split('/')
-#    project_path  = '/'.join(sc_input_temp[:-1])
-    project_path = os.path.dirname(sc_input)
-#    project_name  = sc_input_temp[-1]
     sc_input_sc = os.path.basename(sc_input)
     checkDehoVisual(sc_input_sc, 'visual')
-    #print 'sc_input_sc %s' %sc_input_sc
-    project_name = sc_input_sc.split('.')
-    project_name = project_name[0]
-    #print 'project_name %s' %project_name
-    # check if the odb has already exist, and check if the file .sc exist or not.
-    checkDehoVisual(sc_input_sc, 'visual')
-    
-    
+    project_path, project_name = resolve_project_location(sc_input)
+
     macro_model_dimension = str(macro_model) + 'D'
     mesh_data = scio.read_swiftcomp_input_mesh(
         sc_input, macro_model_dimension, ap_flag
@@ -616,38 +157,12 @@ def visualization(macro_model, ap_flag, sc_input):
     # Create odb file and import data
     # =======================================================================
     
-    # ---------------------
-    # Create a new odb file
-    print('--> Creating ODB file...')
-    odb_name = project_name
-    odb_title = project_name
-    odb_file_name = os.path.join(project_path, project_name + '.odb')
-
-    # Check if ODB already exists
-    if os.path.exists(odb_file_name):
-        print("--! Warning: ODB file already exists and will be overwritten.")
-        try:
-            # Try closing if it's open
-            try:
-                odb = openOdb(odb_file_name)
-                odb.close()
-            except Exception:
-                pass
-
-            os.remove(odb_file_name)
-            aux_dir = odb_file_name + "_f"
-            if os.path.isdir(aux_dir):
-                shutil.rmtree(aux_dir)
-
-            print("--> Existing ODB deleted.")
-        except OSError as e:
-            print("--! Failed to delete existing ODB: {}".format(e))
-            sys.exit(1)
-    
-    odb = Odb(name = odb_name, 
-              analysisTitle = odb_title, 
-              description = 'SwiftComp Dehomogenization', 
-              path = odb_file_name)
+    odb, odb_name, odb_file_name = create_visualization_odb(
+        project_path=project_path,
+        project_name=project_name,
+        description='SwiftComp Dehomogenization',
+        overwrite_existing=True,
+    )
 
     # print('\nelem_label:')
     # print(elem_label)
@@ -675,23 +190,8 @@ def visualization(macro_model, ap_flag, sc_input):
                         
     print('    Done.')
     
-    session.odbs[odb_name].close()
-    odb = openOdb(odb_file_name)
-    
-    # Customize the viewport
-    vp1, vp2 = abq_view.split_viewport_left_right()
-    uab.setViewYZ(vp=vp1, nsg=nsg, obj=odb)
-    abq_view.configure_odb_contour_display(
-        vp=vp1, variable_label='EN', component='EN11', restore=True
-    )
-    abq_view.configure_viewport_annotations(vp=vp1)
-    uab.setViewYZ(vp=vp2, nsg=nsg, obj=odb)
-    abq_view.configure_odb_contour_display(
-        vp=vp2, variable_label='SN', component='SN11'
-    )
-
-    abq_view.make_current(vp=vp1)
-    abq_view.set_linked_viewports(link_viewports=True)
+    odb = reopen_visualization_odb(odb_name, odb_file_name)
+    configure_visualization_viewports(odb=odb, nsg=nsg)
 
     return 1
 
@@ -707,27 +207,27 @@ def visualization1D(odb_vis, project_name, node_coord, elem_connt_b31,
                     elem_sectn, node_label, elem_label, 
                     u_data, sg_strain, sg_stress, sn_strain, sn_stress):
     section_name_g = 'nLayer'
-    material_name = _create_dummy_material(odb_vis)
-    abq_section = _create_sections(
+    material_name = create_dummy_material(odb_vis)
+    abq_section = create_sections(
         odb_vis, elem_sectn, material_name, section_name_g
     )
 
-    part_1 = _create_part_with_nodes(odb_vis, node_coord)
-    _add_element_groups(
+    part_1 = create_part_with_nodes(odb_vis, node_coord)
+    add_element_groups(
         odb_vis,
         part_1,
         [(elem_connt_b31, 'B31', 'eSet-b31', None)],
     )
 
-    instance_1 = _create_instance_and_assign_sections(
+    instance_1 = create_instance_and_assign_sections(
         odb_vis, part_1, elem_sectn, abq_section, section_name_g
     )
-    step_1, frame_1 = _create_step_and_frame(odb_vis)
-    _add_displacement_field(
+    step_1, frame_1 = create_step_and_frame(odb_vis)
+    add_displacement_field(
         odb_vis, frame_1, step_1, instance_1, node_label, u_data
     )
 
-    _add_tensor_fields(
+    add_tensor_fields(
         odb_vis,
         frame_1,
         instance_1,
@@ -777,14 +277,17 @@ def visualization2D(
     sgm_strain, sgm_stress, snm_strain, snm_stress
     ):
     section_name_g = 'Homogeneous solid section'
-    material_name = _create_dummy_material(odb_vis)
-    abq_section = _create_sections(
+    material_name = create_dummy_material(odb_vis)
+    abq_section = create_sections(
         odb_vis, elem_sectn, material_name, section_name_g
     )
-    s_cat = odb_vis.SectionCategory(name='S5', description='')
+    s_cat, sp_bot = create_section_category(
+        odb_vis, name='S5', section_point_number=1,
+        section_point_description='Bottom'
+    )
 
-    part_1 = _create_part_with_nodes(odb_vis, node_coord)
-    _add_element_groups(
+    part_1 = create_part_with_nodes(odb_vis, node_coord)
+    add_element_groups(
         odb_vis,
         part_1,
         [
@@ -796,15 +299,15 @@ def visualization2D(
         ],
     )
 
-    instance_1 = _create_instance_and_assign_sections(
+    instance_1 = create_instance_and_assign_sections(
         odb_vis, part_1, elem_sectn, abq_section, section_name_g
     )
-    step_1, frame_1 = _create_step_and_frame(odb_vis)
-    _add_displacement_field(
+    step_1, frame_1 = create_step_and_frame(odb_vis)
+    add_displacement_field(
         odb_vis, frame_1, step_1, instance_1, node_label, u_data
     )
 
-    _add_tensor_fields(
+    add_tensor_fields(
         odb_vis,
         frame_1,
         instance_1,
@@ -815,6 +318,7 @@ def visualization2D(
                 'name': 'EN',
                 'description': 'Strains at nodes in the global coordinates.',
                 'position': ELEMENT_NODAL,
+                'section_point': sp_bot,
                 'log_message': ' --> Importing strains at elemental nodes in the global coordinates...',
             },
             {
@@ -822,6 +326,7 @@ def visualization2D(
                 'name': 'SN',
                 'description': 'Stresses at nodes in the global coordinates.',
                 'position': ELEMENT_NODAL,
+                'section_point': sp_bot,
                 'log_message': ' --> Importing stresses at elemental nodes in the global coordinates...',
             },
             {
@@ -829,24 +334,28 @@ def visualization2D(
                 'name': 'EGM',
                 'description': 'Strains at Gaussian points in the material coordinates.',
                 'position': INTEGRATION_POINT,
+                'section_point': sp_bot,
             },
             {
                 'data': sgm_stress,
                 'name': 'SGM',
                 'description': 'Stresses at Gaussian points in the material coordinates.',
                 'position': INTEGRATION_POINT,
+                'section_point': sp_bot,
             },
             {
                 'data': snm_strain,
                 'name': 'ENM',
                 'description': 'Strains at nodes in the material coordinates.',
                 'position': ELEMENT_NODAL,
+                'section_point': sp_bot,
             },
             {
                 'data': snm_stress,
                 'name': 'SNM',
                 'description': 'Stresses at nodes in the material coordinates.',
                 'position': ELEMENT_NODAL,
+                'section_point': sp_bot,
             },
         ],
     )
@@ -867,10 +376,10 @@ def visualization3D(odb_vis, project_name, node_coord, elem_connt_c4, elem_connt
                     u_data, sg_strain, sg_stress, sn_strain, sn_stress,
                     sgm_strain, sgm_stress, snm_strain, snm_stress):
     section_name_g = 'Homogeneous solid section'
-    material_name = _create_dummy_material(
+    material_name = create_dummy_material(
         odb_vis, log_message=' --> Creating a dummy material...'
     )
-    abq_section = _create_sections(
+    abq_section = create_sections(
         odb_vis,
         elem_sectn,
         material_name,
@@ -878,13 +387,13 @@ def visualization3D(odb_vis, project_name, node_coord, elem_connt_c4, elem_connt
         log_message=' --> Creating dummy sections...',
     )
 
-    part_1 = _create_part_with_nodes(
+    part_1 = create_part_with_nodes(
         odb_vis,
         node_coord,
         log_message=' --> Creating a new part...',
         node_log_message=' --> Importing nodes...',
     )
-    _add_element_groups(
+    add_element_groups(
         odb_vis,
         part_1,
         [
@@ -898,7 +407,7 @@ def visualization3D(odb_vis, project_name, node_coord, elem_connt_c4, elem_connt
         log_message=' --> Importing elements...',
     )
 
-    instance_1 = _create_instance_and_assign_sections(
+    instance_1 = create_instance_and_assign_sections(
         odb_vis,
         part_1,
         elem_sectn,
@@ -906,10 +415,10 @@ def visualization3D(odb_vis, project_name, node_coord, elem_connt_c4, elem_connt
         section_name_g,
         log_message=' --> Creating a new instance...',
     )
-    step_1, frame_1 = _create_step_and_frame(
+    step_1, frame_1 = create_step_and_frame(
         odb_vis, log_message=' --> Creating new step and frame...'
     )
-    _add_displacement_field(
+    add_displacement_field(
         odb_vis,
         frame_1,
         step_1,
@@ -920,7 +429,7 @@ def visualization3D(odb_vis, project_name, node_coord, elem_connt_c4, elem_connt
     )
 
     print(' --> Importing strain and stress data under global coordinates...')
-    _add_tensor_fields(
+    add_tensor_fields(
         odb_vis,
         frame_1,
         instance_1,
@@ -944,7 +453,7 @@ def visualization3D(odb_vis, project_name, node_coord, elem_connt_c4, elem_connt
     )
 
     print(' --> Importing strain and stress data under material coordinates...')
-    _add_tensor_fields(
+    add_tensor_fields(
         odb_vis,
         frame_1,
         instance_1,

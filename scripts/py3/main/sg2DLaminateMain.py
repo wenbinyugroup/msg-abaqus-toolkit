@@ -8,7 +8,9 @@ from utils.utilities import *
 
 from sg.sg2d_laminate import add_laminate
 
-def assignLayups(baseline, area, model_name, section_name, opposite=0, nsp=20):
-
+def assignLayups(baseline, area, model_name, section_name, opposite=None, nsp=20):
+    # Normalize the AFX form's empty-string sentinel to None.
+    if not opposite:
+        opposite = None
     add_laminate(baseline, area, model_name, section_name, opposite, nsp)
 

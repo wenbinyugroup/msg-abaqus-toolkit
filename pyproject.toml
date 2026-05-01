@@ -10,3 +10,9 @@ dependencies = [
     "linkify-it-py>=2.0.3",
     "pydata-sphinx-theme>=0.16.1",
 ]
+
+[project.optional-dependencies]
+test = [
+    "numpy",
+    "pytest",
+]
