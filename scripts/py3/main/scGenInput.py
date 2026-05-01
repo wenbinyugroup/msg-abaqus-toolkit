@@ -17,19 +17,16 @@ from sketch import *
 from visualization import *
 from connectorBehavior import *
 import os
-import time
 import math
 from utils.utilities import *
 from sgdataio.swiftcomp import checkMaterials, writeMaterials
-from sg.sg_data import *
+from sg.sg_data import register_sg_in_mdb
 
 def generateInputFromCAE(model_source, macro_model_dimension, analysis, elem_flag, trans_flag,
-                         w, nSG, model_name, part_name, abaqus_input, new_filename, 
-                         specific_model, bk, 
-                         sk, cos, 
-                         temp_flag, apvector, nlayer=0):
-
-    startTime = time.perf_counter()
+                         w, nSG, model_name, part_name, abaqus_input, new_filename,
+                         specific_model, bk,
+                         sk, cos,
+                         temp_flag, apvector):
 
     model    = mdb.models[model_name]
     part     = model.parts[part_name]
@@ -62,14 +59,14 @@ def generateInputFromCAE(model_source, macro_model_dimension, analysis, elem_fla
         nMaxnode_elem  = 20
         nodeinfoFormat = strFormat('dFFF')
         eleminfoFormat = eleFormat('dd','d'*20)
+    else:
+        raise ValueError("Unsupported SG dimension: %d. Expected 2 or 3." % nSG)
 
     #### start to write
     if new_filename == '':
         swiftcomp_filename = part_name + '_nSG' + str(nSG) + '_' + macro_model_dimension + '_' + str(elements[0].type)
     else:
         swiftcomp_filename = new_filename
-    
-    print(apvector)
     
     if apvector == [0,0,0]:
         apstr = 'pbc'
@@ -78,23 +75,13 @@ def generateInputFromCAE(model_source, macro_model_dimension, analysis, elem_fla
         apstr = 'MIX'+apstr
     swiftcomp_filename = swiftcomp_filename + apstr
     
-    mdb.customData.Repository('sgs', Sg)
     sg_name = swiftcomp_filename
+    register_sg_in_mdb(
+        sg_name, model_source, model_name, part_name, abaqus_input,
+        swiftcomp_filename, macro_model_dimension, w, analysis, elem_flag,
+        trans_flag, temp_flag, specific_model, bk, cos, sk, apstr,
+    )
     
-    sg = mdb.customData.Sg(name = sg_name)
-    sg.createSg(model_source, model_name, part_name, abaqus_input, swiftcomp_filename,
-                macro_model_dimension, w, analysis, elem_flag, trans_flag, temp_flag,
-                specific_model, 
-                bk, cos,
-                sk, 
-                apstr)
-    if info == 1:
-        print('--> Create sg model: %s' % sg_name)
-        print('    mdb.customData.sgs[\'%s\']' % sg_name)
-        prettyPrint(sg, 2)
-        print('------------------------------')
-    
-    print(swiftcomp_filename + '.sc')
     with open(swiftcomp_filename + '.sc', 'w') as file:
         if macro_model_dimension != '3D':
             writeFormat(file, 'd', [specific_model])
@@ -123,7 +110,7 @@ def generateInputFromCAE(model_source, macro_model_dimension, analysis, elem_fla
         matDict = {}
         matSections = part.sectionAssignments
         for sec in matSections:
-            if sec.suppressed == False:
+            if not sec.suppressed:
                 secName = sec.sectionName
                 mname   = model.sections[secName].material
                 if mname not in matDict:
@@ -135,17 +122,11 @@ def generateInputFromCAE(model_source, macro_model_dimension, analysis, elem_fla
         nslave = 0
         nlayer = 0
         
-        #Material control parameters
-        ntemp = 1
-        temperature = 0
-        
         writeFormat(file, 'd'*6, [nSG, nnode, nelem, nmate, nslave, nlayer])
         file.write('\n')
             
         # write node info
         #==============================================================================
-        nodeStartTime = time.perf_counter()
-
         if nSG == 3:
             for i in range(0, nnode):
                 ndCoords = nodes[i].coordinates
@@ -155,14 +136,9 @@ def generateInputFromCAE(model_source, macro_model_dimension, analysis, elem_fla
                 ndCoords = nodes[i].coordinates    
                 file.write(nodeinfoFormat.format([nodes[i].label, ndCoords[1], ndCoords[2]]))
                  
-        nodeEndTime   = time.perf_counter()
-        writeNodetime = nodeEndTime - nodeStartTime
-        
-        file.write('\n')    
+        file.write('\n')
         #==============================================================================
         
-        elemStartTime = time.perf_counter()
-
         labellist   = []
         matIDlist   = []
         connectlist = []
@@ -200,19 +176,14 @@ def generateInputFromCAE(model_source, macro_model_dimension, analysis, elem_fla
         for elem_info in combinedList:
             file.write(eleminfoFormat.format(elem_info))
         
-        elemEndTime   = time.perf_counter()
-        writeElemtime = elemEndTime - elemStartTime
-
         file.write('\n')
         
         writeMaterials(matDict, analysis, model_name, file)
         
         file.write('{0:16.6E}'.format(w))
         file.write('\n')
-        file.write('\n')        
-    endTime       = time.perf_counter()
-    timeWritefile = endTime - startTime
-    
+        file.write('\n')
+
     swiftcomp_filename += '.sc'
     
     return [swiftcomp_filename, macro_model_dimension]

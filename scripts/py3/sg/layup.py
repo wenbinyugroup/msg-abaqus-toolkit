@@ -332,6 +332,99 @@ def get_active_composite_layup_thicknesses(composite_layup):
 
     return thicknesses
 
+
+def extract_composite_layup_sc_data(part):
+    """Extract SwiftComp layer data from the active composite layup on a part.
+
+    Identifies the single active composite layup, reads all non-suppressed
+    plies, and builds the material/layer/ply mapping structures used by the
+    SwiftComp input writer.
+
+    Parameters
+    ----------
+    part : Part
+        Abaqus part with exactly one active (non-suppressed) composite layup.
+
+    Returns
+    -------
+    matDict : dict[str, int]
+        Material name to integer id (1-indexed).
+    nlayers : dict[int, list]
+        Layer id to ``[mat_id, theta]`` after remapping names to ids.
+    plies : dict[int, int]
+        Ply index (0-indexed) to layer id.
+    offset : float
+        z-coordinate shift applied to each node: ``-total_thickness * offset_ratio``.
+
+    Raises
+    ------
+    ValueError
+        If the part has no active layup or more than one active layup.
+    """
+    # Identify the single active layup
+    active_names = [
+        name for name in part.compositeLayups.keys()
+        if not part.compositeLayups[name].suppressed
+    ]
+    if len(active_names) == 0:
+        raise ValueError(
+            'part[%s].compositeLayups has no active layup; define exactly 1.'
+            % part.name
+        )
+    if len(active_names) >= 2:
+        raise ValueError(
+            'part[%s].compositeLayups has more than 1 active layup; delete the extra.'
+            % part.name
+        )
+    layup_abq = part.compositeLayups[active_names[0]]
+
+    # Offset ratio from layup reference surface
+    _offset_map = {
+        MIDDLE_SURFACE:  0.0,
+        BOTTOM_SURFACE: -0.5,
+        TOP_SURFACE:     0.5,
+    }
+    if layup_abq.offsetType in _offset_map:
+        offset_ratio = _offset_map[layup_abq.offsetType]
+    else:  # SINGLE_VALUE
+        offset_ratio = layup_abq.offsetValues[0]
+
+    # Collect active plies
+    active_plies = [ply for ply in layup_abq.plies if not ply.suppressed]
+    t_total = sum(ply.thickness for ply in active_plies)
+    offset = -t_total * offset_ratio
+
+    # Build matDict, nlayers, plies mapping
+    matDict = {}
+    nlayers = {}
+    plies = {}
+
+    for ply_id, ply in enumerate(active_plies):
+        mat_name = ply.material
+        if ply.orientationType == SPECIFY_ORIENT:
+            theta_i = ply.orientationValue
+        else:
+            theta_i = float(str(ply.orientationType).rsplit('_')[-1])
+
+        if mat_name not in matDict:
+            matDict[mat_name] = len(matDict) + 1
+
+        # Find or create matching layer type [mat_name, theta]
+        layer_id = next(
+            (lid for lid, lv in nlayers.items() if lv == [mat_name, theta_i]),
+            None,
+        )
+        if layer_id is None:
+            layer_id = len(nlayers) + 1
+            nlayers[layer_id] = [mat_name, theta_i]
+        plies[ply_id] = layer_id
+
+    # Remap material names → material ids in nlayers
+    for lid in nlayers:
+        nlayers[lid] = [matDict[nlayers[lid][0]], nlayers[lid][1]]
+
+    return matDict, nlayers, plies, offset
+
 def readMaterialFile(model_name, file_name):
     
     model = mdb.models[model_name]
