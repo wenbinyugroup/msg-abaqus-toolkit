@@ -10,6 +10,66 @@ from utils import abq_view
 import numpy as np
 
 
+# Default factory for each per-model laminate state key.
+_MODEL_KEY_DEFAULTS = (
+    ('mtrId-Name',  dict),
+    ('mtrName-Id',  dict),
+    ('Layer types', dict),
+)
+
+# Default factory for each per-part laminate state key.
+_PART_KEY_DEFAULTS = (
+    ('Set name',                  list),
+    ('Set-FacePoint',             dict),
+    ('Set-SectionAssignment id',  dict),
+    ('Set id',                    lambda: 1),
+    ('Sketch name',               str),
+    ('Partition feature name',    str),
+    ('Baseline',                  list),
+    ('Baseline id',               lambda: 1),
+    ('Interface line id',         dict),
+    ('Layer face set name',       dict),
+)
+
+
+def _load_laminate_state(model_name, part_name):
+    """Load or initialize laminate state from ``mdb.customData.models``.
+
+    Returns
+    -------
+    cst_models : dict
+        Top-level container; pass back to :func:`_save_laminate_state`.
+    cst_model : dict
+        Per-model state with all required keys present.
+    cst_part : dict
+        Per-part state with all required keys present.
+
+    Notes
+    -----
+    Mutable values (dicts, lists) are returned by reference, so the caller
+    may mutate them in place. Scalar fields (``Set id``, ``Baseline id``,
+    ``Sketch name``, ``Partition feature name``) must be re-assigned into
+    ``cst_part`` before saving.
+    """
+    try:
+        cst_models = mdb.customData.models
+    except AttributeError:
+        cst_models = {}
+    cst_model = cst_models.setdefault(model_name, {})
+    for key, factory in _MODEL_KEY_DEFAULTS:
+        cst_model.setdefault(key, factory())
+    cst_parts = cst_model.setdefault('Parts', {})
+    cst_part = cst_parts.setdefault(part_name, {})
+    for key, factory in _PART_KEY_DEFAULTS:
+        cst_part.setdefault(key, factory())
+    return cst_models, cst_model, cst_part
+
+
+def _save_laminate_state(cst_models):
+    """Persist laminate state back to ``mdb.customData.models``."""
+    mdb.customData.models = cst_models
+
+
 def add_laminate(baseline, area, model_name, section_name, opposite=0, nsp=20):
     
 #    print baseline
@@ -21,57 +81,20 @@ def add_laminate(baseline, area, model_name, section_name, opposite=0, nsp=20):
     part_name = abq_view.displayed_part_name(vp)
     p = model.parts[part_name]
     
-    try:
-        cst_models = mdb.customData.models
-    except AttributeError:
-        cst_models = {}
-    try:
-        cst_model = cst_models[model_name]
-    except KeyError:
-        cst_model = {}
-    try:
-        cst_parts = cst_model['Parts']
-    except KeyError:
-        cst_parts = {}
-    try: 
-        cst_part = cst_parts[part_name]
-    except KeyError:
-        cst_part = {}
-    try:
-        mid_name      = cst_model['mtrId-Name']
-        mname_id      = cst_model['mtrName-Id']
-        layer_types   = cst_model['Layer types']
-        lytid_name    = cst_model['lytId-Name']
-        lytname_id    = cst_model['lytName-Id']
-    except KeyError:
-        mid_name      = {}
-        mname_id      = {}
-        layer_types   = {}
-        lytid_name    = {}
-        lytname_id    = {}
-        
-    try:
-        set_name      = cst_part['Set name']
-        set_fpt       = cst_part['Set-FacePoint']
-        set_said      = cst_part['Set-SectionAssignment id']
-        set_id        = cst_part['Set id']
-        s_name        = cst_part['Sketch name']
-        feat_ptt_name = cst_part['Partition feature name']
-        blid_pt       = cst_part['Baseline']
-        bl_idn        = cst_part['Baseline id']
-        sgm_lyr_id    = cst_part['Interface line id']
-        sgm_lyr_set   = cst_part['Layer face set name']
-    except KeyError:
-        set_name      = []
-        set_fpt       = {}
-        set_said      = {}
-        set_id        = 1
-        s_name        = ''
-        feat_ptt_name = ''
-        blid_pt       = []
-        bl_idn        = 1    # self-defined id
-        sgm_lyr_id    = {}
-        sgm_lyr_set   = {}
+    cst_models, cst_model, cst_part = _load_laminate_state(model_name, part_name)
+    mid_name      = cst_model['mtrId-Name']
+    mname_id      = cst_model['mtrName-Id']
+    layer_types   = cst_model['Layer types']
+    set_name      = cst_part['Set name']
+    set_fpt       = cst_part['Set-FacePoint']
+    set_said      = cst_part['Set-SectionAssignment id']
+    set_id        = cst_part['Set id']
+    s_name        = cst_part['Sketch name']
+    feat_ptt_name = cst_part['Partition feature name']
+    blid_pt       = cst_part['Baseline']
+    bl_idn        = cst_part['Baseline id']
+    sgm_lyr_id    = cst_part['Interface line id']
+    sgm_lyr_set   = cst_part['Layer face set name']
 
     e = p.edges
     eids = list(area.getEdges())
@@ -635,27 +658,15 @@ def add_laminate(baseline, area, model_name, section_name, opposite=0, nsp=20):
 
     bl_idn += 1
 
-    cst_part['Set name'] = set_name
-    cst_part['Set-FacePoint'] = set_fpt
-    cst_part['Set-SectionAssignment id'] = set_said
+    # Mutable containers (set_name, set_fpt, set_said, blid_pt, sgm_lyr_id,
+    # sgm_lyr_set, mid_name, mname_id, layer_types) were mutated in place;
+    # only scalars need to be written back.
     cst_part['Set id'] = set_id
     cst_part['Sketch name'] = s_name
     cst_part['Partition feature name'] = feat_ptt_name
-    cst_part['Baseline'] = blid_pt
     cst_part['Baseline id'] = bl_idn
-    cst_part['Interface line id'] = sgm_lyr_id
-    cst_part['Layer face set name'] = sgm_lyr_set
-    cst_parts[part_name] = cst_part
-    
-    cst_model['mtrId-Name'] = mid_name
-    cst_model['mtrName-Id'] = mname_id
-    cst_model['Layer types'] = layer_types
-    cst_model['lytId-Name'] = lytid_name
-    cst_model['lytName-Id'] = lytname_id
-    cst_model['Parts'] = cst_parts
-    cst_models[model_name] = cst_model
-    mdb.customData.models = cst_models
-    
+    _save_laminate_state(cst_models)
+
     abq_view.apply_color_mapping('Section', vp=vp)
 
 
@@ -668,17 +679,12 @@ def remove_laminate(baseline, model_name):
     part_name = abq_view.displayed_part_name(vp)
     p = model.parts[part_name]
     
-    cst_models = mdb.customData.models
-    cst_model = cst_models[model_name]
-    cst_parts = cst_model['Parts']
-    cst_part = cst_parts[part_name]
+    cst_models, _, cst_part = _load_laminate_state(model_name, part_name)
     set_name      = cst_part['Set name']
     set_fpt       = cst_part['Set-FacePoint']
     set_said      = cst_part['Set-SectionAssignment id']
-#    s_name        = cst_part['Sketch name']
     feat_ptt_name = cst_part['Partition feature name']
     blid_pt       = cst_part['Baseline']
-#    bl_idn        = cst_part['Baseline id']
     sgm_lyr_id    = cst_part['Interface line id']
     sgm_lyr_set   = cst_part['Layer face set name']
     
@@ -757,28 +763,10 @@ def remove_laminate(baseline, model_name):
     
     uab.refreshSets(mdb, model_name, part_name, set_fpt)
     
-    cst_part['Set name'] = set_name
-    cst_part['Set-FacePoint'] = set_fpt
-    # 该键名必须与 add_laminate 写入的键一致，否则 set_said 永远不会被刷新。
-    cst_part['Set-SectionAssignment id'] = set_said
-#    cst_part['Set id'] = set_id
-#    cst_part['Sketch name'] = s_name
-#    cst_part['Partition feature name'] = feat_ptt_name
-    cst_part['Baseline'] = blid_pt
-#    cst_part['Baseline id'] = bl_idn
-    cst_part['Interface line id'] = sgm_lyr_id
-    cst_part['Layer face set name'] = sgm_lyr_set
-    cst_parts[part_name] = cst_part
-    
-#    cst_model['mtrId-Name'] = mid_name
-#    cst_model['mtrName-Id'] = mname_id
-#    cst_model['Layer types'] = layer_types
-#    cst_model['lytId-Name'] = lytid_name
-#    cst_model['lytName-Id'] = lytname_id
-    cst_model['Parts'] = cst_parts
-    cst_models[model_name] = cst_model
-    mdb.customData.models = cst_models
-    
+    # All state was mutated in place via the references returned from
+    # _load_laminate_state; just flush.
+    _save_laminate_state(cst_models)
+
     abq_view.apply_color_mapping('Section', vp=vp)
 
 
