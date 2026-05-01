@@ -140,6 +140,12 @@ def add_laminate(baseline, area, model_name, section_name, opposite=0, nsp=20):
         v2_id = list(vs_bd2)
         v2_id.remove(v1_id)
         v2_id = v2_id[0]
+    else:
+        # baseline 末端顶点必须落在两条边界边其中之一上；否则拓扑不合法。
+        raise ValueError(
+            "baseline end vertex is not on either boundary edge; "
+            "the laminate region topology is invalid."
+        )
     v0 = vs[v0_id]
     v1 = vs[v1_id]
     v2 = vs[v2_id]
@@ -292,8 +298,17 @@ def add_laminate(baseline, area, model_name, section_name, opposite=0, nsp=20):
 
     elif ctype == 'SPLINE' or ctype == 'ARC' or ctype == 'CIRCLE' or ctype == 'ELLIPSE':
 #        nsp = 100  # number of sample points
+        if opposite == 0:
+            # 曲线 baseline 必须给出对边，用于构造层间偏移参考。
+            raise ValueError(
+                "curved baseline requires an 'opposite' edge to build the "
+                "layer offset reference."
+            )
         if nsp <= 0:
             raise ValueError('Number of sampling points must be positive.')
+        if nsp > 100:
+            # range(1, 100, 100 // nsp) 在 nsp > 100 时步长退化为 0。
+            raise ValueError('Number of sampling points must not exceed 100.')
         spline_constrain = True
         sbl_pts = []
         oob_pts = []
@@ -352,6 +367,7 @@ def add_laminate(baseline, area, model_name, section_name, opposite=0, nsp=20):
         elif len(oob_kp) == 1:
             oob_kp_id = list(oob_kp.values())[0][0]
 #            print oob_kp_id
+            kp_id = None
             for i, pt in enumerate(sbl_pts):
                 x0, y0 = pt[0], pt[1]
                 x1, y1 = oob_pt1[0], oob_pt1[1]
@@ -364,6 +380,12 @@ def add_laminate(baseline, area, model_name, section_name, opposite=0, nsp=20):
                 if d2 < sbl_r:
                     kp_id = -1
 #            print kp_id
+            if kp_id is None:
+                # baseline 上未找到与 opposite 端点足够接近的样本点。
+                raise ValueError(
+                    "cannot locate opposite-edge endpoint on the baseline "
+                    "within sampling tolerance; check geometry or increase nsp."
+                )
             sbl_vec = np.array((0.0,)+sbl_pt2) - np.array((0.0,)+sbl_pt1)
             oob_vec = np.array((0.0,)+oob_pt2) - np.array((0.0,)+oob_pt1)
             dp = np.dot(sbl_vec, oob_vec)
@@ -374,7 +396,8 @@ def add_laminate(baseline, area, model_name, section_name, opposite=0, nsp=20):
                     sbl_pts = sbl_pts + sbl_pts_extra
                     pt0 = (0.0,) + sbl_pts[-1]
                 elif dp < 0.0:
-                    sbl_pts = sbl_pts_extra.reverse() + sbl_pts
+                    # list.reverse() 是 in-place 操作，返回 None；必须用 reversed()。
+                    sbl_pts = list(reversed(sbl_pts_extra)) + sbl_pts
             elif kp_id == -1:
                 sbl_pts_extra = oob_pts[:oob_kp_id-1]
                 if dp > 0.0:
@@ -382,7 +405,7 @@ def add_laminate(baseline, area, model_name, section_name, opposite=0, nsp=20):
 #                    print sbl_pts_extra
                     sbl_pts = sbl_pts_extra + sbl_pts
                 elif dp < 0.0:
-                    sbl_pts = sbl_pts + sbl_pts_extra.reverse()
+                    sbl_pts = sbl_pts + list(reversed(sbl_pts_extra))
                     pt0 = (0.0,) + sbl_pts[-1]
 #            print sbl_pts
             sbl = s.Spline(points = sbl_pts, constrainPoints = spline_constrain)
@@ -667,11 +690,19 @@ def remove_laminate(baseline, model_name):
     s = model.sketches[s_name]
     g = s.geometry
     
+    bl_idn = None
+    index = None
     for i, bl in enumerate(blid_pt):
         if bl_pt == bl[1]:
             bl_idn = bl[0]
             index = i
 #    print bl_idn
+    if bl_idn is None:
+        # 选中的 baseline 不在该零件已记录的 baseline 列表中。
+        raise ValueError(
+            "selected baseline is not registered for this part; "
+            "nothing to remove."
+        )
     blid_pt.remove(blid_pt[index])
     
     count_sa_del = 0
@@ -728,7 +759,8 @@ def remove_laminate(baseline, model_name):
     
     cst_part['Set name'] = set_name
     cst_part['Set-FacePoint'] = set_fpt
-    cst_part['Section-Assignment id'] = set_said
+    # 该键名必须与 add_laminate 写入的键一致，否则 set_said 永远不会被刷新。
+    cst_part['Set-SectionAssignment id'] = set_said
 #    cst_part['Set id'] = set_id
 #    cst_part['Sketch name'] = s_name
 #    cst_part['Partition feature name'] = feat_ptt_name
